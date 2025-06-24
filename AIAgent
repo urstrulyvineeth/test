@@ -1,6 +1,6 @@
 🛡️ AutoSecure AI Agent - Hackathon Guidebook (Beginner Friendly)
 🎯 Introduction
-
+AutoSecureX is an intelligent AI agent that scans Java projects for vulnerabilities, upgrades dependencies, refactors insecure code, and auto-fixes issues—ensuring secure, modern, production-ready code.
 AutoSecure is an intelligent AI-powered agent designed to find and fix security vulnerabilities in Java-based backend projects.
 It can handle both GitHub repositories and uploaded project files. AutoSecure uses Amazon Bedrock (Claude), AWS Lambda, Snyk for scanning, 
 and GitHub for raising pull requests. This document walks you through everything you need to build and win with AutoSecure — from AWS setup to a beautiful React UI.
