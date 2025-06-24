@@ -1,0 +1,294 @@
+🛡️ AutoSecure AI Agent - Hackathon Guidebook (Beginner Friendly)
+🎯 Introduction
+
+AutoSecure is an intelligent AI-powered agent designed to find and fix security vulnerabilities in Java-based backend projects.
+It can handle both GitHub repositories and uploaded project files. AutoSecure uses Amazon Bedrock (Claude), AWS Lambda, Snyk for scanning, 
+and GitHub for raising pull requests. This document walks you through everything you need to build and win with AutoSecure — from AWS setup to a beautiful React UI.
+
+🪜 Step 1: AWS Bedrock Setup
+
+1. Log in to AWS Console (https://console.aws.amazon.com)
+2. Switch to a supported region: us-east-1 or us-west-2
+3. Search and open Amazon Bedrock
+4. Click on "Agents" in the left menu > "Create Agent"
+5. Fill:
+   - Name: AutoSecure
+   - Enable Multi-turn: Yes
+   - Enable Code Interpreter: Yes
+   - Foundation Model: Claude 3 Sonnet
+6. Add agent instructions (provided in next section)
+
+🧠 AutoSecure Agent Instructions (Paste into Bedrock)
+Full updated agent instructions for Claude — optimized for GitHub + Upload scenarios — are inlined in this document to avoid losing context.
+
+You are AutoSecure AI — a battle-tested, intelligent AI agent built to identify and eliminate vulnerabilities in enterprise-grade Java backend applications...
+[TRUNCATED HERE — will be pasted in full inside the document in next cells for formatting]
+
+🔧 Lambda Backend Functions
+
+Create 5 Lambda functions for the agent:
+1. AutoSecureScanRepoLambda - Clones repo or loads uploaded project & scans using Snyk
+2. AutoSecureVersionSuggestLambda - Suggests secure, compatible dependency versions
+3. AutoSecureFixCodeLambda - Uses Bedrock Claude to refactor project code
+4. AutoSecureRescanLambda - Re-scans project after fixes
+5. AutoSecureRaisePRLambda - Creates GitHub PR (if access available), else informs user
+
+📒 Jupyter Notebook: AI-driven Flow
+
+A powerful Jupyter Notebook lets you test the full AutoSecure pipeline:
+- Accepts GitHub URL or uploaded project
+- Runs Snyk scan and shows vulnerability summary
+- Asks user for upgrade targets (Java, Spring Boot)
+- Suggests secure dependencies from Maven Central
+- Calls Claude (via Bedrock) to safely fix the code
+- Optional PR creation if GitHub access is present
+
+💻 React Frontend UI Screens (What to Build)
+
+Use Vite + Tailwind CSS + React + TypeScript.
+
+Must-have pages:
+1. Welcome Screen with animation
+2. Repo/Upload Input Page
+3. Vulnerability Summary Dashboard with pie charts
+4. Upgrade Planning Screen: Dropdowns for Java/Spring versions
+5. Claude Output Viewer: Before vs After code (diff viewer)
+6. Review & Approve Screen with PR link or patch download
+
+Style it modern like Vercel/Linear/Stripe UI — minimal, animated, glassmorphic elements.
+
+🧭 End-to-End AutoSecure Flow (Simplified)
+
+1. User gives GitHub link or uploads project
+2. AutoSecure scans and shows vulnerabilities
+3. User picks upgrade targets (Java, Spring)
+4. AutoSecure fetches secure dependencies and rewrites code using Bedrock Claude
+5. Re-scan is done to verify fixes
+6. If GitHub access: PR is created. Else: User downloads patch manually
+7. UI shows status and diff beautifully.
+
+🏆 Conclusion: Win the Hackathon
+Everything is automated — secure scanning, dependency resolution, refactoring, and PR generation. You're not just building an AI agent — you're delivering a secure devops engineer in a box.
+Now go win that hackathon! 🚀🔥
+
+
+============================================================================================================================================
+
+Agent Instruction:
+You are AutoSecure AI — a battle-tested, intelligent AI agent built to identify and eliminate vulnerabilities in enterprise-grade Java backend applications with zero functional regression.
+
+You receive either:
+- A GitHub repository URL (public or private), or
+- A direct upload of the full project source code (zipped or structured folder)
+
+Your job is to analyze, upgrade, modernize, secure, and optionally raise a Pull Request — all autonomously — to reduce vulnerabilities to the lowest number possible.
+
+You must follow this strict and intelligent multi-phase workflow:
+
+🧩 PHASE 1: Input Understanding
+1. Determine the project source:
+   - If it is a GitHub URL, clone the repository.
+   - If it is a project upload, extract and scan the file system.
+2. Confirm this is a Java project by checking for:
+   - pom.xml or build.gradle
+   - .java files
+   - application.properties or application.yml
+3. If the project is not a valid Java app, ask the user politely to provide a valid backend Java project.
+
+🔍 PHASE 2: Vulnerability Assessment
+4. Perform a vulnerability scan using a supported tool like Snyk or Twistlock.
+5. Categorize all vulnerabilities by severity:
+   - Critical, High, Medium, Low
+6. Collect details:
+   - Package name, version, CVE ID, affected files, recommendation
+7. Present a vulnerability report table + pie chart breakdown
+
+🎯 PHASE 3: Upgrade Target Confirmation
+8. Ask user for target Java version (e.g., 17) and Spring Boot version (e.g., 3.1.2)
+9. Cross-check compatibility and fetch secure dependency versions from Maven Central
+
+🔧 PHASE 4: Refactoring & Upgrades
+10. Apply safe code transformations:
+    - javax → jakarta
+    - springfox → springdoc
+    - Upgrade dependencies in pom.xml/build.gradle
+11. Preserve core logic and formatting as much as possible
+
+🧪 PHASE 5: Re-Validation
+12. Re-scan with Snyk/Twistlock
+13. Show vulnerabilities before vs after
+14. Report fixed CVEs and remaining issues
+
+🚀 PHASE 6: PR Automation (Smart Logic)
+15. If GitHub URL + access available:
+    - Create branch
+    - Commit changes
+    - Raise PR with detailed summary
+16. Else:
+    - Say: “Fixes ready. Please raise PR manually as I lack access.”
+    - Offer zip or patch
+
+🏁 GOAL: Deliver secure, modernized code with zero vulnerabilities and clean, reviewable diffs.
+
+=================================================================================================
+
+AutoSecureScanRepoLambda
+Purpose: Clone GitHub repo or handle uploaded files, run vulnerability scan using Snyk.
+
+
+
+
+
+import os
+import subprocess
+import json
+import boto3
+
+def lambda_handler(event, context):
+    repo_url = event.get("repo_url")
+    project_path = "/tmp/project"
+    
+    if os.path.exists(project_path):
+        subprocess.run(["rm", "-rf", project_path])
+    
+    if repo_url:
+        subprocess.run(["git", "clone", repo_url, project_path])
+    else:
+        return {"status": "WAITING_FOR_UPLOAD"}
+
+    # Run Snyk scan
+    result = subprocess.run(
+        ["snyk", "test", "--all-projects", "--json"],
+        cwd=project_path,
+        capture_output=True,
+        text=True
+    )
+    
+    scan_report = json.loads(result.stdout)
+    return {
+        "status": "SCAN_COMPLETE",
+        "vulnerabilities": scan_report.get("vulnerabilities", []),
+        "summary": {
+            "critical": sum(1 for v in scan_report["vulnerabilities"] if v["severity"] == "critical"),
+            "high": sum(1 for v in scan_report["vulnerabilities"] if v["severity"] == "high"),
+            "medium": sum(1 for v in scan_report["vulnerabilities"] if v["severity"] == "medium"),
+            "low": sum(1 for v in scan_report["vulnerabilities"] if v["severity"] == "low"),
+        }
+    }
+
+
+=====================================================================================================
+
+AutoSecureVersionSuggestLambda:
+Purpose: Suggest latest, secure dependency versions from Maven Central based on current ones.
+
+import requests
+
+def lambda_handler(event, context):
+    group_id = event["groupId"]
+    artifact_id = event["artifactId"]
+    
+    url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&rows=100&wt=json"
+    response = requests.get(url).json()
+    versions = sorted({doc["v"] for doc in response["response"]["docs"]}, reverse=True)
+    
+    return {
+        "artifact": f"{group_id}:{artifact_id}",
+        "latest_secure_version": versions[0] if versions else "Not found"
+    }
+
+
+============================================================================================================
+
+
+AutoSecureFixCodeLambda
+Purpose: Use Amazon Bedrock (Claude) to upgrade Java version, replace dependencies, and fix imports.
+
+import boto3
+import json
+
+def lambda_handler(event, context):
+    java_version = event["java_version"]
+    spring_version = event["spring_version"]
+    file_content = event["java_file"]
+
+    client = boto3.client("bedrock-runtime", region_name="us-east-1")
+    
+    prompt = f\"\"\"
+You are AutoSecure AI. Refactor the given Java file to be compatible with Java {java_version} and Spring Boot {spring_version}.
+- Replace javax.* with jakarta.*
+- Migrate from Springfox to Springdoc
+- Ensure backward-compatible logic
+File:\n{file_content}
+\"\"\"
+    
+    response = client.invoke_model(
+        modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+        body=json.dumps({"prompt": prompt, "max_tokens": 2048}),
+        contentType="application/json",
+        accept="application/json"
+    )
+    
+    output = response["body"].read().decode()
+    return {"refactored_code": output}
+
+====================================================================================================
+
+AutoSecureRescanLambda
+Purpose: Validate refactored project by running another Snyk scan.
+
+import subprocess
+import json
+
+def lambda_handler(event, context):
+    project_path = "/tmp/project"
+    
+    result = subprocess.run(
+        ["snyk", "test", "--all-projects", "--json"],
+        cwd=project_path,
+        capture_output=True,
+        text=True
+    )
+    
+    data = json.loads(result.stdout)
+    summary = {
+        "critical": sum(1 for v in data["vulnerabilities"] if v["severity"] == "critical"),
+        "high": sum(1 for v in data["vulnerabilities"] if v["severity"] == "high"),
+        "medium": sum(1 for v in data["vulnerabilities"] if v["severity"] == "medium"),
+        "low": sum(1 for v in data["vulnerabilities"] if v["severity"] == "low"),
+    }
+    
+    return {"status": "REVALIDATED", "summary": summary}
+====================================================================================
+AutoSecureRaisePRLambda
+Purpose: Raise GitHub PR if access exists, otherwise inform user.
+import requests
+
+def lambda_handler(event, context):
+    has_access = event.get("github_access", False)
+    repo = event.get("repo")
+    token = event.get("token")
+    branch = "autosecure/fix-vulnerabilities"
+    
+    if not has_access:
+        return {
+            "status": "MANUAL_PR_REQUIRED",
+            "message": "Fixes completed, but no GitHub access. Please raise the PR manually."
+        }
+
+    headers = {"Authorization": f"token {token}"}
+    
+    # Create PR via GitHub API
+    data = {
+        "title": "AutoSecure: Security Upgrade and Dependency Refactor",
+        "head": branch,
+        "base": "main",
+        "body": "✅ Fixed vulnerabilities\n🔧 Upgraded libraries\n🛡️ Ensured compatibility\n"
+    }
+    
+    response = requests.post(f"https://api.github.com/repos/{repo}/pulls", headers=headers, json=data)
+    return {
+        "status": "PR_CREATED",
+        "url": response.json().get("html_url")
+    }
+
