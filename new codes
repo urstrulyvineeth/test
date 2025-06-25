@@ -1,0 +1,231 @@
+Perfect, Vineeth! Now that you've clearly given the bucket details:
+
+> 🪣 **S3 Bucket Name:** `account1-env5-s3-bucket-457650192243`
+> 📂 **Input Folder:** `autosecure-input/`
+> 📂 **Output Folder (assumed):** `autosecure-output/` (we’ll also use this)
+
+I’ll now rewrite all relevant **Inline Code Blocks** that read/write to this bucket and path — cleanly and clearly. Let’s cover:
+
+---
+
+# ✅ Rewritten Inline Code Blocks (S3-Aware)
+
+---
+
+## 🟨 BLOCK 2: Save `input.json` to S3
+
+### 🧠 Goal: Save the user’s input into `autosecure-input/input.json`
+
+```python
+import json, boto3
+
+source = "none"
+if input.get("repo_url"):
+    source = "repo"
+elif input.get("s3_input_bucket") and input.get("s3_input_key"):
+    source = "s3"
+elif input.get("inline_java_project"):
+    source = "inline"
+
+if source == "none":
+    return {"error": "❌ Please provide a valid project source."}
+
+input_json = {
+    "source": source,
+    "repo_url": input.get("repo_url"),
+    "s3_input_bucket": input.get("s3_input_bucket"),
+    "s3_input_key": input.get("s3_input_key"),
+    "inline_java_project": input.get("inline_java_project")
+}
+
+s3 = boto3.client("s3")
+s3.put_object(
+    Bucket="account1-env5-s3-bucket-457650192243",
+    Key="autosecure-input/input.json",
+    Body=json.dumps(input_json).encode("utf-8"),
+    ContentType="application/json"
+)
+
+return {"message": "✅ Project metadata saved to input.json"}
+```
+
+---
+
+## 🟧 BLOCK 3: Run Initial Vulnerability Scan (Snyk)
+
+### 🧠 Goal: Use `input.json`, download project, scan with Snyk
+
+```python
+import json, os, subprocess, zipfile, boto3
+
+project_dir = "/tmp/project"
+os.makedirs(project_dir, exist_ok=True)
+s3 = boto3.client("s3")
+
+# Load input.json
+s3.download_file(
+    "account1-env5-s3-bucket-457650192243",
+    "autosecure-input/input.json",
+    "/tmp/input.json"
+)
+cfg = json.load(open("/tmp/input.json"))
+
+source = cfg["source"]
+if source == "repo":
+    subprocess.run(["git", "clone", cfg["repo_url"], project_dir], check=True)
+elif source == "s3":
+    zip_path = "/tmp/project.zip"
+    s3.download_file(cfg["s3_input_bucket"], cfg["s3_input_key"], zip_path)
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(project_dir)
+elif source == "inline":
+    with open(f"{project_dir}/Main.java", "w") as f:
+        f.write(cfg["inline_java_project"])
+else:
+    return {"error": "❌ Invalid source in input.json"}
+
+# Run Snyk
+result = subprocess.run(["snyk", "test", "--json"], cwd=project_dir, capture_output=True, text=True)
+
+try:
+    output = json.loads(result.stdout)
+except:
+    return {"error": "❌ Snyk scan failed or returned bad JSON"}
+
+counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+for v in output.get("vulnerabilities", []):
+    sev = v.get("severity", "low").lower()
+    counts[sev] += 1
+
+return {
+    "before_critical": counts["critical"],
+    "before_high": counts["high"],
+    "before_medium": counts["medium"],
+    "before_low": counts["low"]
+}
+```
+
+---
+
+## 🟦 BLOCK 5: Upgrade Code with OpenRewrite
+
+### 🧠 Goal: Apply upgrades, zip fixed project, save to `autosecure-output/`
+
+```python
+import json, subprocess, shutil, os, boto3
+
+project_dir = "/tmp/project"
+s3 = boto3.client("s3")
+
+# Load input
+s3.download_file(
+    "account1-env5-s3-bucket-457650192243",
+    "autosecure-input/input.json",
+    "/tmp/input.json"
+)
+cfg = json.load(open("/tmp/input.json"))
+
+# Download project
+if cfg["source"] == "s3":
+    zip_path = "/tmp/project.zip"
+    s3.download_file(cfg["s3_input_bucket"], cfg["s3_input_key"], zip_path)
+    shutil.unpack_archive(zip_path, project_dir)
+elif cfg["source"] == "repo":
+    subprocess.run(["git", "clone", cfg["repo_url"], project_dir], check=True)
+elif cfg["source"] == "inline":
+    os.makedirs(project_dir, exist_ok=True)
+    with open(f"{project_dir}/Main.java", "w") as f:
+        f.write(cfg["inline_java_project"])
+
+# Run OpenRewrite
+recipes = [
+    f"org.openrewrite.java.migrate.UpgradeToJava{input['target_java_version']}",
+    "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_0"
+]
+if input.get("upgrade_all_dependencies", "Yes").lower() == "yes":
+    recipes.append("org.openrewrite.maven.UpgradeDependencyVersion")
+
+cmd = ["mvn", "rewrite:run", f"-DactiveRecipes={','.join(recipes)}"]
+subprocess.run(cmd, cwd=project_dir)
+
+# Upload fixed zip
+shutil.make_archive("/tmp/fixed", 'zip', project_dir)
+output_key = cfg.get("s3_input_key", "fixed.zip").replace(".zip", "-fixed.zip")
+
+s3.upload_file(
+    "/tmp/fixed.zip",
+    "account1-env5-s3-bucket-457650192243",
+    f"autosecure-output/{output_key}"
+)
+
+return {
+    "fixed_zip_url": f"https://s3.amazonaws.com/account1-env5-s3-bucket-457650192243/autosecure-output/{output_key}"
+}
+```
+
+---
+
+## ⬛ BLOCK 7: Run Final Scan on Fixed Project
+
+```python
+import json, subprocess, zipfile, os, boto3
+
+fixed_dir = "/tmp/final_project"
+os.makedirs(fixed_dir, exist_ok=True)
+s3 = boto3.client("s3")
+
+# Load config
+s3.download_file(
+    "account1-env5-s3-bucket-457650192243",
+    "autosecure-input/input.json",
+    "/tmp/input.json"
+)
+cfg = json.load(open("/tmp/input.json"))
+
+# Download fixed zip
+output_key = cfg["s3_input_key"].replace(".zip", "-fixed.zip")
+s3.download_file(
+    "account1-env5-s3-bucket-457650192243",
+    f"autosecure-output/{output_key}",
+    "/tmp/fixed.zip"
+)
+
+with zipfile.ZipFile("/tmp/fixed.zip", "r") as zip_ref:
+    zip_ref.extractall(fixed_dir)
+
+# Run scan
+result = subprocess.run(["snyk", "test", "--json"], cwd=fixed_dir, capture_output=True, text=True)
+output = json.loads(result.stdout)
+
+counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+for v in output.get("vulnerabilities", []):
+    sev = v.get("severity", "low").lower()
+    counts[sev] += 1
+
+return {
+    "after_critical": counts["critical"],
+    "after_high": counts["high"],
+    "after_medium": counts["medium"],
+    "after_low": counts["low"]
+}
+```
+
+---
+
+### ✅ Summary of Folder Paths:
+
+| Folder       | S3 Path                                                                         |
+| ------------ | ------------------------------------------------------------------------------- |
+| Input JSON   | `account1-env5-s3-bucket-457650192243/autosecure-input/input.json`              |
+| Uploaded ZIP | `account1-env5-s3-bucket-457650192243/{{s3_input_key}}`                         |
+| Fixed ZIP    | `account1-env5-s3-bucket-457650192243/autosecure-output/{{filename-fixed.zip}}` |
+
+---
+
+Would you like me to:
+
+* ✅ Give a real `.ipynb` file with this logic fully embedded?
+* ✅ Provide the final JSON Bedrock Agent Flow export for all blocks?
+* ✅ Generate a React UI to upload ZIP + configure version?
+
+Let me know what you want next — we're nearly at the polished demo-ready version 🚀
