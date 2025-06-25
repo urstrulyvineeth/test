@@ -1,0 +1,245 @@
+Absolutely! Here's your **clear, step-by-step guide** to build an **Amazon Bedrock Agent Flow** that uses **Lambda functions via API Gateway**. This covers everything: from writing the Lambda function, exposing it via API Gateway, registering it in Bedrock, and wiring it into the Flow — no confusion, no missing steps.
+
+---
+
+# 🧠 AutoSecureX: Step-by-Step Flow with Lambda Integration in Amazon Bedrock
+
+---
+
+## ✅ What You'll Achieve
+
+A fully working **Agent Flow** where your **Bedrock Agent (AutoSecureX)** calls your **Lambda-backed actions** to:
+
+1. Accept a GitHub repo or upload
+2. Scan the project
+3. Ask for Java/Spring upgrade versions
+4. Suggest secure dependencies
+5. Fix the code via Claude
+6. Ask user for PR approval
+7. Raise PR via GitHub (optional)
+8. Show a final success message
+
+---
+
+## 🧱 STEP 0: Prerequisites
+
+* AWS account with **Bedrock + Lambda + API Gateway** access
+* Agent `AutoSecureX` already created in Bedrock
+* Snyk or mock logic for scanning in Lambda
+* Claude access via Bedrock
+* GitHub token (if raising PR)
+
+---
+
+## 🛠️ STEP 1: Create Your Lambda Functions
+
+You’ll need 3 basic Lambda functions:
+
+| Lambda Function                 | Purpose                                    |
+| ------------------------------- | ------------------------------------------ |
+| `ScanJavaProjectLambda`         | Clones repo & scans for vulnerabilities    |
+| `FetchSecureDependenciesLambda` | Suggests secure versions for Spring & Java |
+| `RaisePullRequestLambda`        | Raises PR if user approves                 |
+
+> ✅ You can write in **Java 17** or **Python**
+> ✅ Each should return JSON (for Bedrock to parse)
+
+---
+
+## 🚀 STEP 2: Expose Lambdas via API Gateway
+
+1. Go to **API Gateway → Create API → HTTP API**
+2. Create POST routes:
+
+   * `/scan` → `ScanJavaProjectLambda`
+   * `/suggest` → `FetchSecureDependenciesLambda`
+   * `/raise-pr` → `RaisePullRequestLambda`
+3. Deploy and note the endpoint URLs:
+
+   * e.g., `https://abc123.execute-api.region.amazonaws.com/scan`
+
+---
+
+## 🧾 STEP 3: Register Each Lambda as Bedrock Agent Actions
+
+Go to:
+**Amazon Bedrock → Agents → AutoSecureX → Actions → Create Action**
+
+Repeat for each:
+
+### 🔹 Example: `ScanJavaProjectAction`
+
+* **Name**: `ScanJavaProjectAction`
+* **API Endpoint**: `https://.../scan`
+* **Input Schema**:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repo_url": { "type": "string" }
+  },
+  "required": ["repo_url"]
+}
+```
+
+* **Output Schema**:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "scan_summary": { "type": "string" },
+    "code_sample": { "type": "string" }
+  },
+  "required": ["scan_summary", "code_sample"]
+}
+```
+
+Do the same for:
+
+* `FetchSecureDependenciesAction`
+* `RaisePullRequestAction`
+
+---
+
+## 🎨 STEP 4: Create the Agent Flow
+
+1. Go to **Agent → Flows**
+2. Click **Create Flow**
+3. Name: `AutoSecureXFlow`
+
+---
+
+## 🔄 STEP 5: Add Blocks to Flow
+
+### ✅ Block 1: Prompt
+
+* **Message**:
+
+  ```
+  Welcome to AutoSecureX! Please enter your GitHub repo URL or upload a zipped Java project.
+  ```
+* **Output Parameter**: `repo_url`
+
+---
+
+### ✅ Block 2: Action → `ScanJavaProjectAction`
+
+* Select action: `ScanJavaProjectAction`
+* **Input Mapping**: `repo_url`
+* **Output**: `scan_summary`, `code_sample`
+
+---
+
+### ✅ Block 3: Prompt
+
+* **Message**:
+
+  ```
+  Please enter the Java and Spring Boot version you'd like to upgrade to (e.g., Java 17, Spring 3.2.5)
+  ```
+* **Output Parameters**: `java_version`, `spring_version`
+
+---
+
+### ✅ Block 4: Action → `FetchSecureDependenciesAction`
+
+* Select action: `FetchSecureDependenciesAction`
+* **Input**: `java_version`, `spring_version`
+* **Output**: `dependency_versions`
+
+---
+
+### ✅ Block 5: Claude LLM Prompt
+
+* **Prompt**:
+
+  ```
+  Upgrade the following code:
+  - Java: {java_version}
+  - Spring Boot: {spring_version}
+  - Replace javax.* with jakarta.*
+  - Migrate from Springfox to springdoc
+  - Use these secure dependencies: {dependency_versions}
+
+  Code to refactor:
+  {code_sample}
+  ```
+* **Output**: `refactored_code`
+
+---
+
+### ✅ Block 6: Prompt
+
+* **Message**:
+
+  ```
+  Refactored code is ready. Would you like me to raise a GitHub PR for this upgrade?
+  ```
+* **Output**: `pr_approval`
+
+---
+
+### ✅ Block 7: Condition
+
+* **Condition**: `pr_approval == "yes"`
+
+Inside the "yes" path:
+
+### ✅ Block 7a: Action → `RaisePullRequestAction`
+
+* **Input**: `refactored_code`, `repo_url`, `github_token`
+* **Output**: `pr_link`
+
+---
+
+### ✅ Block 8: Final Prompt
+
+* **Message**:
+
+  ```markdown
+  ✅ Your project has been secured!
+
+  {% if pr_link %}
+  Pull Request created: {pr_link}
+  {% else %}
+  Please raise the PR manually using the refactored code.
+  {% endif %}
+  ```
+
+---
+
+## 🔗 STEP 6: Link Flow to Agent
+
+1. Go to **Agent → Instructions**
+2. Add system message:
+
+   ```
+   You are AutoSecureX, an AI agent that upgrades Java Spring Boot projects by scanning, fixing vulnerabilities, and raising PRs.
+   ```
+3. Set **Default Flow** to `AutoSecureXFlow`
+4. Click **Publish**
+
+---
+
+## ✅ Done! You're Ready
+
+Now, when the agent is invoked:
+
+* It will ask for the repo
+* Call your **Lambda functions** via the Flow
+* Use **Claude** to fix code
+* Raise PR if approved
+* Return a clean final message
+
+---
+
+Would you like:
+
+* ✅ Java Lambda function templates?
+* ✅ Terraform/CDK to deploy everything?
+* ✅ Flow JSON file you can import?
+* ✅ React dashboard to trigger this flow?
+
+You’re almost there, and you're building this like a champ 🔥
