@@ -3,21 +3,21 @@ import zipfile
 import os
 import shutil
 
-# --- CONFIGURATION ---
-BUCKET_NAME = 'autosecure-input'
-KEY = 'AgentAI.zip'
-LOCAL_ZIP = '/tmp/AgentAI.zip'
-EXTRACTED_DIR = '/tmp/AgentAI'
+# === CONFIGURATION ===
+BUCKET_NAME = 'autosecure-input'      # Make sure this S3 bucket exists
+KEY = 'AgentAI.zip'                   # Uploaded Java project zip
+LOCAL_ZIP = '/home/ec2-user/AgentAI.zip'
+EXTRACTED_DIR = '/home/ec2-user/AgentAI'
 
-# --- STEP 1: DOWNLOAD ZIP FROM S3 ---
+# === STEP 1: DOWNLOAD ZIP FROM S3 ===
 s3 = boto3.client('s3')
 s3.download_file(BUCKET_NAME, KEY, LOCAL_ZIP)
 
-# --- STEP 2: EXTRACT THE PROJECT ---
+# === STEP 2: EXTRACT PROJECT ===
 with zipfile.ZipFile(LOCAL_ZIP, 'r') as zip_ref:
     zip_ref.extractall(EXTRACTED_DIR)
 
-# --- STEP 3: SIMULATE VULNERABILITY SCAN ---
+# === STEP 3: SIMULATED SCAN ===
 vulnerabilities = []
 for root, dirs, files in os.walk(EXTRACTED_DIR):
     for file in files:
@@ -28,21 +28,21 @@ for root, dirs, files in os.walk(EXTRACTED_DIR):
                 "recommendation": "Upgrade spring-boot-starter-parent to 3.2.4"
             })
 
-# --- STEP 4: AUTO-FIX SAMPLE VULNERABILITIES ---
+# === STEP 4: AUTO-FIX ===
 for v in vulnerabilities:
     path = v["file"]
     with open(path, 'r') as f:
         content = f.read()
-    content = content.replace("2.5.0", "3.2.4")  # Example version upgrade
+    content = content.replace("2.5.0", "3.2.4")  # Example replacement
     with open(path, 'w') as f:
         f.write(content)
 
-# --- STEP 5: ZIP THE FIXED PROJECT AND UPLOAD TO S3 ---
-fixed_zip_path = '/tmp/AgentAI-fixed.zip'
-shutil.make_archive('/tmp/AgentAI-fixed', 'zip', EXTRACTED_DIR)
+# === STEP 5: ZIP FIXED PROJECT & UPLOAD TO S3 ===
+fixed_zip_path = '/home/ec2-user/AgentAI-fixed.zip'
+shutil.make_archive('/home/ec2-user/AgentAI-fixed', 'zip', EXTRACTED_DIR)
 s3.upload_file(fixed_zip_path, BUCKET_NAME, 'AgentAI-fixed.zip')
 
-# --- STEP 6: RETURN A SUMMARY OUTPUT (Used in Flow Output) ---
+# === STEP 6: OUTPUT ===
 output = {
     "status": "fixed",
     "fixed_file_s3": f"s3://{BUCKET_NAME}/AgentAI-fixed.zip",
