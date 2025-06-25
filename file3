@@ -1,30 +1,24 @@
-import boto3
-import zipfile
+import subprocess
+import json
 import os
 
-def handler(s3_file_key):
-    s3 = boto3.client("s3")
-    bucket = "autosecurex-inputs"
+def lambda_handler(event, context):
+    repo_url = event.get('repo_url')  # OR event['s3_path']
+    project_path = "/tmp/project"
 
-    # Download to /tmp
-    local_zip = "/tmp/project.zip"
-    s3.download_file(bucket, s3_file_key, local_zip)
+    # Clone the Git repo
+    subprocess.run(["git", "clone", repo_url, project_path])
 
-    # Unzip contents to /tmp/project/
-    project_dir = "/tmp/project/"
-    with zipfile.ZipFile(local_zip, 'r') as zip_ref:
-        zip_ref.extractall(project_dir)
+    # Run snyk test
+    result = subprocess.run(["snyk", "test", "--json"], cwd=project_path, capture_output=True, text=True)
 
-    # Read a sample Java file (demo purpose)
-    sample_code = ""
-    for root, dirs, files in os.walk(project_dir):
-        for f in files:
-            if f.endswith(".java"):
-                with open(os.path.join(root, f)) as file:
-                    sample_code = file.read()
-                    break
-        if sample_code: break
+    output = json.loads(result.stdout)
+    severities = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for vuln in output.get("vulnerabilities", []):
+        level = vuln["severity"]
+        severities[level] += 1
 
     return {
-        "project_code_sample": sample_code or "No Java file found."
+        "statusCode": 200,
+        "body": json.dumps(severities)
     }
