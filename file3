@@ -1,67 +1,51 @@
-import json
+import boto3
+import zipfile
 import os
-import subprocess
-import tempfile
 import shutil
 
-def clone_repo(repo_url, destination):
-    """Clone the GitHub repo to a temp directory"""
-    result = subprocess.run([
-        "git", "clone", repo_url, destination
-    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if result.returncode != 0:
-        raise Exception(f"Failed to clone repo: {result.stderr.decode()}")
+# --- CONFIGURATION ---
+BUCKET_NAME = 'autosecure-input'
+KEY = 'AgentAI.zip'
+LOCAL_ZIP = '/tmp/AgentAI.zip'
+EXTRACTED_DIR = '/tmp/AgentAI'
 
-def run_snyk_scan(project_path):
-    """Run snyk test and return severity counts"""
-    try:
-        result = subprocess.run(
-            ["snyk", "test", "--json"],
-            cwd=project_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=60
-        )
-        if result.returncode not in (0, 1):  # 0 = no issues, 1 = issues found
-            raise Exception(f"Snyk failed: {result.stderr.decode()}")
+# --- STEP 1: DOWNLOAD ZIP FROM S3 ---
+s3 = boto3.client('s3')
+s3.download_file(BUCKET_NAME, KEY, LOCAL_ZIP)
 
-        output = json.loads(result.stdout.decode())
-        counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-        for vuln in output.get("vulnerabilities", []):
-            sev = vuln.get("severity")
-            if sev in counts:
-                counts[sev] += 1
-        return counts
+# --- STEP 2: EXTRACT THE PROJECT ---
+with zipfile.ZipFile(LOCAL_ZIP, 'r') as zip_ref:
+    zip_ref.extractall(EXTRACTED_DIR)
 
-    except subprocess.TimeoutExpired:
-        raise Exception("Snyk scan timed out")
+# --- STEP 3: SIMULATE VULNERABILITY SCAN ---
+vulnerabilities = []
+for root, dirs, files in os.walk(EXTRACTED_DIR):
+    for file in files:
+        if file.endswith("pom.xml") or file.endswith(".gradle"):
+            vulnerabilities.append({
+                "file": os.path.join(root, file),
+                "issue": "Outdated Spring Boot version",
+                "recommendation": "Upgrade spring-boot-starter-parent to 3.2.4"
+            })
 
-def lambda_handler(event, context):
-    repo_url = event.get("repo_url")
-    if not repo_url:
-        return {"statusCode": 400, "body": json.dumps({"error": "Missing repo_url"})}
+# --- STEP 4: AUTO-FIX SAMPLE VULNERABILITIES ---
+for v in vulnerabilities:
+    path = v["file"]
+    with open(path, 'r') as f:
+        content = f.read()
+    content = content.replace("2.5.0", "3.2.4")  # Example version upgrade
+    with open(path, 'w') as f:
+        f.write(content)
 
-    tmpdir = tempfile.mkdtemp()
-    try:
-        project_dir = os.path.join(tmpdir, "repo")
-        clone_repo(repo_url, project_dir)
-        scan_result = run_snyk_scan(project_dir)
-        return {
-            "statusCode": 200,
-            "body": json.dumps(scan_result)
-        }
-    except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
-        }
-    finally:
-        shutil.rmtree(tmpdir)
+# --- STEP 5: ZIP THE FIXED PROJECT AND UPLOAD TO S3 ---
+fixed_zip_path = '/tmp/AgentAI-fixed.zip'
+shutil.make_archive('/tmp/AgentAI-fixed', 'zip', EXTRACTED_DIR)
+s3.upload_file(fixed_zip_path, BUCKET_NAME, 'AgentAI-fixed.zip')
 
-
-
-
-
-{
-  "repo_url": "https://github.com/spring-projects/spring-petclinic"
+# --- STEP 6: RETURN A SUMMARY OUTPUT (Used in Flow Output) ---
+output = {
+    "status": "fixed",
+    "fixed_file_s3": f"s3://{BUCKET_NAME}/AgentAI-fixed.zip",
+    "vulnerabilities_found": vulnerabilities
 }
+print(output)
