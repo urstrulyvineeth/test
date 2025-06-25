@@ -35,28 +35,29 @@ The next step will scan, extract, fix vulnerabilities and re-upload. You just co
 
 ✅ Thanks! I’ve received your project input.
 
-Here’s what you’ve submitted:
+Here's what you've submitted:
 
-{{#repo_url}}
+{% if repo_url and repo_url != "" %}
 - 🔗 GitHub Repository: {{repo_url}}
-{{/repo_url}}
+{% endif %}
 
-{{#s3_input_bucket}}
+{% if s3_input_bucket and s3_input_key and s3_input_bucket != "" and s3_input_key != "" %}
 - 🪣 S3 Bucket: {{s3_input_bucket}}
 - 📄 S3 Key: {{s3_input_key}}
-{{/s3_input_bucket}}
+{% endif %}
 
-{{#inline_java_project}}
+{% if inline_java_project and inline_java_project != "" %}
 - 📄 Java project pasted directly.
-{{/inline_java_project}}
+{% endif %}
 
-I will now run the **AutoSecure static vulnerability scan** on your project.  
-This scan will check for issues like:
-- Outdated or vulnerable Java and Spring Boot versions
-- Weak dependencies in `pom.xml` or `build.gradle`
-- Missing security patches or bad config
+🧪 I will now run the **AutoSecure static vulnerability scan** on your project.  
+This scan will check for:
+- Outdated Java or Spring Boot versions
+- Vulnerable dependencies in `pom.xml` / `build.gradle`
+- Misconfigured security libraries or flags
 
-⚠️ *This step will only scan your project. No modifications will be made yet.*
+⚠️ This step will only **scan** your project — no changes will be made yet.
 
-Please wait while I prepare and run the scanner...
+➡️ Please wait while the scan begins...
+
 
