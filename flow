@@ -61,31 +61,24 @@ This scan will check for:
 ➡️ Please wait while the scan begins...
 
 ==================================================================================================
-🔍 The AutoSecure scanner has completed an initial analysis of your project.
-
-Here’s what we found:
+🔍 🔍 The AutoSecure scanner has completed an initial analysis of your project.
 
 {% if vulnerabilities_found and vulnerabilities_found|length > 0 %}
 📂 Detected Vulnerabilities:
-{% for v in vulnerabilities_found %}
-- 📄 File: {{v.file}}
-  ❗️ Issue: {{v.issue}}
-  💡 Recommendation: {{v.recommendation}}
+{% for vuln in vulnerabilities_found %}
+- {{vuln}}
 {% endfor %}
 {% else %}
-✅ No major version issues detected automatically, but you can still upgrade Java/Spring manually if needed.
+✅ No critical version issues detected.
 {% endif %}
 
 ---
 
-To apply safe upgrades, please enter the **target versions** you'd like to use:
+To apply safe upgrades, please provide:
 
-1. ☕️ Java version (e.g., 17, 21):
-   ➤ (Use current if unsure, or type `skip`)
+1. ☕ Java version (e.g., 17, 21):
+2. 🌱 Spring Boot version (e.g., 3.2.4):
 
-2. 🌱 Spring Boot version (e.g., 3.1.5, 3.2.4):
-   ➤ (We'll update your `pom.xml` / `build.gradle` accordingly)
-
-Once you provide these, I’ll apply the upgrades and return a fixed ZIP file with changes made.
+Type `skip` to skip any of these if not needed.
 
 
