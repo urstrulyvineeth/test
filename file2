@@ -1,222 +1,300 @@
-Absolutely! Here's a **clean, beginner-friendly, step-by-step guide** to create a complete **Agent Flow in Amazon Bedrock**, from scratch, specifically for your `AutoSecureX` agent.
+🛡️ AutoSecureX: Amazon Bedrock Agent Flow - Step-by-Step Integration Guide
+
+This document walks you through the complete step-by-step process to build, configure, and integrate an Agent Flow into your AutoSecureX Bedrock Agent. The goal is to build an end-to-end pipeline using Bedrock Agent Flows (no Lambda or SageMaker Studio domain), capable of scanning a Java project, upgrading dependencies, and fixing vulnerabilities using Claude, Knowledge Bases, and dynamic user inputs.
+
 
 ---
 
-# ✅ Step-by-Step Guide: Creating a Flow in Amazon Bedrock for AutoSecureX
+✅ Prerequisites
+
+AWS account with access to Amazon Bedrock, Agents, and Agent Flows (Preview)
+
+Knowledge Base created and synced with your documents (CVEs, migrations, upgrade guides)
+
+GitHub token (if PR feature is enabled)
+
+Bedrock access to Claude 3 Sonnet
+
+
 
 ---
 
-## 🎯 Goal
+🧱 AutoSecureX Agent Flow Structure
 
-Create a **Flow** for the `AutoSecureX` agent to:
+🧹 Steps Summary:
 
-1. Accept a repo/upload
-2. Scan vulnerabilities (via action)
-3. Ask upgrade versions
-4. Fetch secure dependencies
-5. Refactor code using Claude
-6. Ask user to raise PR
-7. Create PR if approved
-8. Show result message
+Step	Block Type	Purpose
 
----
+1	Prompt	Ask user for repo URL or upload
+2	Action	Clone repo + scan using snyk (via API Gateway)
+3	Prompt	Ask for Java and Spring Boot upgrade versions
+4	Action	Fetch compatible dependency versions (via API)
+5	Prompt (Claude)	Send code and instructions to Claude to fix
+6	Conditional	Ask if user wants to raise a PR
+7	Action	Create PR using GitHub token if approved
+8	Prompt	Final response to user
 
-## 🧱 Prerequisites
 
-* Your **AutoSecureX agent** is already created in Bedrock
-* You have API endpoints (or mock functions) ready for scanning, version suggestion, and PR creation
-* You’ve added a **Knowledge Base** (optional)
 
 ---
 
-## 🛠️ Step-by-Step: Create the Flow
+🔨 Step-by-Step: Create and Configure Flow
 
-### 🔹 1. Go to Amazon Bedrock Console
+🔹 Step 1: Create Agent
 
-1. Open the AWS Console
-2. Navigate to **Amazon Bedrock → Agents**
-3. Click on your agent (e.g., `AutoSecureX`)
+1. Go to Amazon Bedrock > Agents
 
----
 
-### 🔹 2. Enable & Create a Flow
+2. Click Create agent
 
-1. Click **Flows (Preview)** in the sidebar
-2. Click **Create flow**
+Name: AutoSecureX
 
-   * Flow name: `AutoSecureXFlow`
-   * Description: `Scans Java project, suggests upgrades, refactors code, and creates PR`
-3. A blank flow editor opens with a default **Prompt block**.
+Role: Create or select a role with bedrock:InvokeModel, s3:*, and bedrock:RetrieveAndGenerate
 
----
+Add your Knowledge Base if available (e.g., AutoSecureX-KB)
 
-## 🧩 Add Blocks to the Flow
+Click Create
 
-### 🔷 Block 1: Ask for Project (Prompt)
 
-* **Message**:
 
-  ```
-  Please provide your GitHub repository URL or upload a zipped Java project.
-  ```
-* **Output Parameter**:
-  `repo_url`
 
-✅ Click **Add** → `Prompt`
 
 ---
 
-### 🔷 Block 2: Scan Project (Action)
+🔹 Step 2: Open Flows Tab
 
-* **Action Name**: `ScanJavaProjectAction`
-* **Input**: `repo_url`
-* **Output**: `scan_summary`, `code_sample`
+1. Inside your agent, go to Flows (Preview)
 
-🧠 This action should:
 
-* Clone the repo
-* Run `snyk test`
-* Return vulnerability summary & sample code
+2. Click Create Flow
 
-✅ Click **Add** → `Action`
+Name: AutoSecureXFlow
 
-* Set action name
-* Fill in input/output parameters
+Default prompt: "Welcome to AutoSecureX! I can help secure your Java project. Please share a GitHub URL or upload your project as a ZIP file."
+
+
+
+
 
 ---
 
-### 🔷 Block 3: Ask for Upgrade Targets (Prompt)
+🔹 Step 3: Add Blocks to the Flow
 
-* **Message**:
+🧹 Step 1: Get Repo URL
 
-  ```
-  What Java and Spring Boot versions do you want to upgrade to?
-  Example: Java 17, Spring Boot 3.2.5
-  ```
-* **Output**: `java_version`, `spring_version`
+Block Type: Prompt
 
-✅ Click **Add** → `Prompt`
+Prompt:
+
+Welcome to AutoSecureX! Please enter the GitHub repository URL or upload a zipped Java project to get started.
+
+Output Parameters: repo_url
+
+
+🧹 Step 2: Clone + Scan via API
+
+Block Type: Action Group
+
+Action Group Name: AutoSecureScanAction
+
+Input Parameters: repo_url
+
+Output: scan_summary, code_sample
+
+Description:
+
+This action calls your REST endpoint (behind API Gateway or any hosted REST API) to clone the repo and run snyk test.
+
+
+
+🧹 Step 3: Ask for Upgrade Targets
+
+Block Type: Prompt
+
+Prompt:
+
+Please enter the Java version and Spring Boot version you'd like to upgrade to. For example:
+- Java version: 17
+- Spring Boot version: 3.2.5
+
+Parameters: java_version, spring_version
+
+
+🧹 Step 4: Get Compatible Dependencies
+
+Block Type: Action Group
+
+Action Group Name: AutoSecureVersionSuggest
+
+Input: java_version, spring_version
+
+Output: dependency_versions
+
+
+🧹 Step 5: Claude Refactor
+
+Block Type: Prompt with LLM (Claude)
+
+Prompt:
+
+You are AutoSecureX, a professional AI security assistant.
+
+Upgrade the following Java Spring Boot code to:
+- Java {java_version}
+- Spring Boot {spring_version}
+- Replace javax.* imports with jakarta.*
+- Replace Springfox with Springdoc
+- Update dependencies to these secure versions: {dependency_versions}
+
+Ensure no business logic is changed.
+
+---
+Code Sample:
+{code_sample}
+
+Output: refactored_code
+
+
+🧹 Step 6: Ask to Raise PR
+
+Block Type: Prompt
+
+Prompt:
+
+The upgraded code is ready. Would you like me to create a Pull Request with the updated code?
+
+Parameter: pr_approval
+
+
+🧹 Step 7: Create PR
+
+Block Type: Action Group
+
+Name: AutoSecureRaisePR
+
+Input: refactored_code, repo_url, github_token
+
+Condition: only if pr_approval == yes
+
+Output: pr_link
+
+
+🧹 Step 8: Final Prompt
+
+Block Type: Prompt
+
+Prompt:
+
+Your project has been successfully secured!
+
+{% if pr_link %}
+📅 Pull Request created: {pr_link}
+{% else %}
+PR was not created. You can copy the updated code and manually create the PR.
+{% endif %}
+
+Thank you for using AutoSecureX!
+
+
 
 ---
 
-### 🔷 Block 4: Fetch Dependency Versions (Action)
+🔗 Integration with Agent
 
-* **Action Name**: `FetchSecureDependencies`
-* **Input**: `java_version`, `spring_version`
-* **Output**: `dependency_versions`
+After saving the Flow:
 
-✅ Click **Add** → `Action`
+1. Go to the Agent > Instructions tab
 
----
 
-### 🔷 Block 5: Refactor Code with Claude (LLM Prompt)
+2. Set system prompt:
 
-* **Message / Prompt**:
+> "You are AutoSecureX, a powerful AI agent that can scan Java projects, detect vulnerabilities, recommend upgrades, and fix code using secure best practices."
 
-  ```
-  Refactor the following Java code to:
-  - Upgrade to Java {java_version} and Spring Boot {spring_version}
-  - Replace javax.* with jakarta.*
-  - Migrate from Springfox to springdoc
-  - Use these secure versions: {dependency_versions}
-  Keep the functionality same.
 
-  CODE:
-  {code_sample}
-  ```
-* **Input**: `java_version`, `spring_version`, `dependency_versions`, `code_sample`
-* **Output**: `refactored_code`
 
-✅ Click **Add** → `Prompt with Claude`
+
+3. Assign the newly created Flow as the default flow for the agent
+
+
+4. Publish the agent
+
+
+
 
 ---
 
-### 🔷 Block 6: Ask to Raise PR (Prompt)
+🧠 Knowledge Base Tips
 
-* **Message**:
+Attach a KB during agent creation with documents like:
 
-  ```
-  Here is your upgraded code. Do you want me to raise a Pull Request?
-  ```
-* **Output**: `pr_approval`
+cve_remediations.csv
 
-✅ Click **Add** → `Prompt`
+springboot_upgrade_guide.pdf
 
----
+javax_to_jakarta.md
 
-### 🔷 Block 7: Conditional Block
+dependency_best_practices.json
 
-* **Condition**:
-  `pr_approval == "yes"`
 
-✅ Click **Add** → `Condition`
+Agent will auto-respond with accurate references when questions like “Why should I move from springfox to springdoc?” are asked.
 
-➡️ Inside this condition, add:
-
-### 🔷 Block 7a: Create PR (Action)
-
-* **Action Name**: `RaisePullRequestAction`
-* **Input**: `refactored_code`, `repo_url`, `github_token`
-* **Output**: `pr_link`
-
-✅ Click **Add** → `Action` (inside conditional)
 
 ---
 
-### 🔷 Block 8: Final Message (Prompt)
+🎯 Final Result
 
-* **Message**:
+Agent asks for project
 
-  ```txt
-  Your project has been secured.
+Scans repo via secure API
 
-  {% if pr_link %}
-  ✅ Pull Request created: {pr_link}
-  {% else %}
-  Please create the PR manually.
-  {% endif %}
+Asks for upgrade levels
 
-  Thanks for using AutoSecureX!
-  ```
-* **Input**: `pr_link` (optional)
+Refactors code with Claude + KB help
 
-✅ Click **Add** → `Prompt`
+Shows upgraded code
 
----
+Asks for PR approval
 
-## 🔗 Integrate Flow with the Agent
+Creates GitHub PR if allowed
 
-1. Go to **Agent > Instructions**
-2. Add system prompt:
+Shows link or final message
 
-   ```txt
-   You are AutoSecureX. Your job is to secure Java projects by scanning, upgrading, and applying best practices. You use secure dependency versions and help with refactoring and PR creation.
-   ```
-3. Scroll to **Flows section**
-4. Select `AutoSecureXFlow` as the **default flow**
 
-✅ Click **Publish Agent**
 
 ---
 
-## ✅ Now You're Ready
+You now have a fully automated, flow-driven, generative AI agent that:
 
-🎉 Agent will:
+Remediates Java vulnerabilities
 
-* Ask for repo/upload
-* Scan and summarize vulnerabilities
-* Ask for upgrade targets
-* Fetch secure versions
-* Refactor code using Claude
-* Raise PR (optional)
-* Return results
+Explains every action
 
----
+Handles code transformation securely
 
-Would you like:
+Can be showcased with zero coding in front of judges
 
-* ✨ A JSON of this flow to import?
-* ⚙️ Backend code for `ScanJavaProjectAction` or `RaisePullRequestAction`?
-* 🎨 React UI to call this agent?
 
-Just say the word. You're a few steps from winning this hackathon. 💪
+Let me know if you want the flow diagram or importable Flow JSON template next!
+
+
+
+✅ The messages, outputs, and prompts have now been properly updated in your flow document for AutoSecureX. Each block now includes:
+
+Friendly and precise user messages
+
+Properly labeled input and output parameters
+
+Clear, action-oriented prompts tailored for Bedrock and Claude
+
+
+Let me know if you'd like:
+
+A JSON version to directly import this Flow
+
+Mock APIs for actions like ScanJavaProject or RaisePullRequest
+
+A UI to trigger this flow from a React dashboard
+
+
+You're on track to win this hackathon 💥
+
