@@ -1,0 +1,204 @@
+Absolutely! Here's the full **AutoSecureX Agent Flow** using only **inline code blocks** (no Lambda, no API Gateway) — all inside **Amazon Bedrock Flows**.
+
+---
+
+# ✅ Full AutoSecureX Flow Using Inline Code Blocks
+
+---
+
+## 🧱 OVERVIEW OF FLOW BLOCKS
+
+| Step | Block Type        | Name               | Purpose                                  |
+| ---- | ----------------- | ------------------ | ---------------------------------------- |
+| 1    | Prompt            | GetRepoInput       | Ask user for GitHub URL or upload        |
+| 2    | Inline Code       | InlineScanRepo     | Simulate or call vulnerability scanner   |
+| 3    | Prompt            | GetUpgradeVersions | Ask user for Java & Spring Boot versions |
+| 4    | Inline Code       | InlineFetchDeps    | Suggest secure dependency versions       |
+| 5    | Claude LLM Prompt | RefactorWithClaude | Refactor code (e.g., javax→jakarta)      |
+| 6    | Prompt            | AskPRConfirmation  | Ask user if PR should be raised          |
+| 7    | Condition         | IfYesRaisePR       | Route to PR creation if confirmed        |
+| 8    | Inline Code       | InlineRaisePR      | Raise PR if GitHub token is available    |
+| 9    | Prompt            | FinalSummary       | Show final result to the user            |
+
+---
+
+## 🧩 DETAILED BLOCK CONFIGURATION
+
+---
+
+### 🔷 1. Prompt Block — `GetRepoInput`
+
+**Message:**
+
+```
+Welcome to AutoSecureX! Please provide your GitHub repository URL or upload a zipped Java Spring Boot project.
+```
+
+**Output Parameter**: `repo_url`
+
+---
+
+### 🔷 2. Inline Code Block — `InlineScanRepo`
+
+**Input Parameter**: `repo_url`
+**Output Parameters**: `scan_summary`, `code_sample`
+**Language**: Python
+**Code:**
+
+```python
+import requests
+
+def handler(repo_url):
+    # For demo, simulate scan. Replace with real Snyk API call if needed.
+    if not repo_url.startswith("https://github.com/"):
+        return { "scan_summary": "Invalid GitHub URL", "code_sample": "" }
+
+    # Simulated output
+    return {
+        "scan_summary": "Scan completed: 2 critical, 4 high vulnerabilities.",
+        "code_sample": "import javax.servlet.*;\npublic class Hello { }"
+    }
+```
+
+---
+
+### 🔷 3. Prompt Block — `GetUpgradeVersions`
+
+**Message:**
+
+```
+Enter the target Java and Spring Boot versions for the upgrade.
+Example: Java 17, Spring Boot 3.2.5
+```
+
+**Output Parameters**: `java_version`, `spring_version`
+
+---
+
+### 🔷 4. Inline Code Block — `InlineFetchDeps`
+
+**Input Parameters**: `java_version`, `spring_version`
+**Output Parameter**: `dependency_versions`
+**Code:**
+
+```python
+def handler(java_version, spring_version):
+    # Simulate secure dependency suggestions
+    return {
+        "dependency_versions": f"""
+spring-boot-starter-web: {spring_version}
+spring-boot-starter-data-jpa: {spring_version}
+jakarta.servlet-api: 6.0.0
+springdoc-openapi-starter-webmvc-ui: 2.2.0
+        """.strip()
+    }
+```
+
+---
+
+### 🔷 5. Claude Prompt Block — `RefactorWithClaude`
+
+**Prompt:**
+
+```
+You are AutoSecureX, an expert Java refactoring assistant.
+
+Upgrade the following code:
+- Target Java version: {java_version}
+- Target Spring Boot version: {spring_version}
+- Replace javax.* with jakarta.*
+- Migrate from Springfox to springdoc
+- Use the following secure dependency versions:
+{dependency_versions}
+
+Here is the original code:
+{code_sample}
+
+Provide the refactored version.
+```
+
+**Output**: `refactored_code`
+
+---
+
+### 🔷 6. Prompt Block — `AskPRConfirmation`
+
+**Message:**
+
+```
+Your code has been successfully refactored. Would you like AutoSecureX to raise a GitHub Pull Request for these changes? (yes/no)
+```
+
+**Output Parameter**: `pr_approval`
+
+---
+
+### 🔷 7. Condition Block — `IfYesRaisePR`
+
+**Condition**: `pr_approval == "yes"`
+➡️ Yes → Go to next block
+➡️ No → Skip to final summary
+
+---
+
+### 🔷 8. Inline Code Block — `InlineRaisePR`
+
+**Input Parameters**: `refactored_code`, `repo_url`, `github_token`
+**Output Parameter**: `pr_link`
+**Code:**
+
+```python
+import requests
+import base64
+
+def handler(refactored_code, repo_url, github_token):
+    if not github_token:
+        return { "pr_link": "⚠️ No GitHub access. Please raise the PR manually." }
+
+    repo_name = repo_url.split("/")[-1]
+    owner = repo_url.split("/")[-2]
+
+    # Simulated PR (real logic would use GitHub REST API)
+    return {
+        "pr_link": f"https://github.com/{owner}/{repo_name}/pull/42"
+    }
+```
+
+---
+
+### 🔷 9. Final Prompt Block — `FinalSummary`
+
+**Message:**
+
+```markdown
+🎯 AutoSecureX has completed the upgrade.
+
+{% if pr_link and "http" in pr_link %}
+✅ Pull Request created successfully: {pr_link}
+{% else %}
+🔒 Code upgraded. Please raise the PR manually.
+{% endif %}
+```
+
+---
+
+## ✅ Benefits of Using Inline Code Blocks
+
+| Feature               | Benefit                            |
+| --------------------- | ---------------------------------- |
+| No Lambda/API Gateway | No deployment, faster iteration    |
+| Python support        | Simple API calls or logic inline   |
+| Fully visual          | Everything inside the Flow builder |
+| Better for hackathons | No IAM, no auth complexity         |
+
+---
+
+## 🧠 What's Next?
+
+Would you like me to:
+
+* Give a ready-to-import JSON template for this Flow?
+* Add optional error handling / validation?
+* Build a React dashboard that lets users input repo and watch progress?
+
+You're almost done. Just plug in and **win that hackathon** 🏆
