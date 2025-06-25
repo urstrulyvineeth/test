@@ -1,24 +1,59 @@
-import subprocess
 import json
 import os
+import subprocess
+import tempfile
+import shutil
+
+def clone_repo(repo_url, destination):
+    """Clone the GitHub repo to a temp directory"""
+    result = subprocess.run([
+        "git", "clone", repo_url, destination
+    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        raise Exception(f"Failed to clone repo: {result.stderr.decode()}")
+
+def run_snyk_scan(project_path):
+    """Run snyk test and return severity counts"""
+    try:
+        result = subprocess.run(
+            ["snyk", "test", "--json"],
+            cwd=project_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=60
+        )
+        if result.returncode not in (0, 1):  # 0 = no issues, 1 = issues found
+            raise Exception(f"Snyk failed: {result.stderr.decode()}")
+
+        output = json.loads(result.stdout.decode())
+        counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for vuln in output.get("vulnerabilities", []):
+            sev = vuln.get("severity")
+            if sev in counts:
+                counts[sev] += 1
+        return counts
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Snyk scan timed out")
 
 def lambda_handler(event, context):
-    repo_url = event.get('repo_url')  # OR event['s3_path']
-    project_path = "/tmp/project"
+    repo_url = event.get("repo_url")
+    if not repo_url:
+        return {"statusCode": 400, "body": json.dumps({"error": "Missing repo_url"})}
 
-    # Clone the Git repo
-    subprocess.run(["git", "clone", repo_url, project_path])
-
-    # Run snyk test
-    result = subprocess.run(["snyk", "test", "--json"], cwd=project_path, capture_output=True, text=True)
-
-    output = json.loads(result.stdout)
-    severities = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-    for vuln in output.get("vulnerabilities", []):
-        level = vuln["severity"]
-        severities[level] += 1
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps(severities)
-    }
+    tmpdir = tempfile.mkdtemp()
+    try:
+        project_dir = os.path.join(tmpdir, "repo")
+        clone_repo(repo_url, project_dir)
+        scan_result = run_snyk_scan(project_dir)
+        return {
+            "statusCode": 200,
+            "body": json.dumps(scan_result)
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
+    finally:
+        shutil.rmtree(tmpdir)
