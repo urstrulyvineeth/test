@@ -1,2 +1,10 @@
 A user has uploaded a Java project zip file named {{s3_input_key}} to S3.
 Trigger the AutoSecure scanner notebook in SageMaker to scan and auto-fix vulnerabilities.
+
+
+
+The user has uploaded a zip file {{s3_input_key}}.
+Trigger the AutoSecure notebook located at:
+Instance: account1-env5-sagemaker-notebook-instance  
+File: autosecure-scanner.ipynb  
+Parameters: BUCKET_NAME=autosecure-input, OBJECT_KEY={{s3_input_key}}
