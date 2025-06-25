@@ -29,3 +29,34 @@ Remember:
 - {{inline_java_project}} may contain pasted Java files, pom.xml, etc.
 
 The next step will scan, extract, fix vulnerabilities and re-upload. You just collect valid input.
+
+
+=============================================================================================================
+
+✅ Thanks! I’ve received your project input.
+
+Here’s what you’ve submitted:
+
+{{#repo_url}}
+- 🔗 GitHub Repository: {{repo_url}}
+{{/repo_url}}
+
+{{#s3_input_bucket}}
+- 🪣 S3 Bucket: {{s3_input_bucket}}
+- 📄 S3 Key: {{s3_input_key}}
+{{/s3_input_bucket}}
+
+{{#inline_java_project}}
+- 📄 Java project pasted directly.
+{{/inline_java_project}}
+
+I will now run the **AutoSecure static vulnerability scan** on your project.  
+This scan will check for issues like:
+- Outdated or vulnerable Java and Spring Boot versions
+- Weak dependencies in `pom.xml` or `build.gradle`
+- Missing security patches or bad config
+
+⚠️ *This step will only scan your project. No modifications will be made yet.*
+
+Please wait while I prepare and run the scanner...
+
