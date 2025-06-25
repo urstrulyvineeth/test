@@ -57,3 +57,11 @@ def lambda_handler(event, context):
         }
     finally:
         shutil.rmtree(tmpdir)
+
+
+
+
+
+{
+  "repo_url": "https://github.com/spring-projects/spring-petclinic"
+}
