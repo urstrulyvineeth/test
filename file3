@@ -1,207 +1,30 @@
-Awesome! Let's design your **AutoSecureBot Flow** inside **Amazon Bedrock → Knowledge Base + Agents → Flows** **WITHOUT using Action Groups or Lambda functions**.
-
-We'll follow this exact path:
-
----
-
-## ✅ Step-by-Step Flow (Upload-Based Project via S3)
-
-### 🧠 Goal for This Flow
-
-The flow should:
-
-1. Accept a **project name** or identifier from user.
-2. Fetch the **Java project ZIP** from S3 (already uploaded).
-3. Unzip and **scan the code for known vulnerable dependencies**.
-4. Ask the user which **Java/Spring version** they want to upgrade to.
-5. Refactor/upgrade the project using reasoning + prompt chaining.
-6. Output a summary of changes and optionally a patch (downloadable).
-
----
-
-## 🔁 Step 1: Flow Input Setup
-
-Go to **Bedrock Console → Agents → Flows → Create Flow**
-
-* **Flow Name**: `AutoSecureBot-S3UploadFlow`
-* **Model**: `Claude 3 Sonnet` or `Claude 3 Haiku` (good balance)
-* **Purpose**: Automate Java Project Upgrade and Refactoring from S3 Upload
-* **Start Node Type**: `Start`
-
-### 👉 Define the Flow Input (first node)
-
-* Drag an `Input` node from the panel.
-* Add the following fields:
-
-| Field Name     | Type | Required | Description                    |
-| -------------- | ---- | -------- | ------------------------------ |
-| `project_name` | Text | ✅        | Logical project name or ID     |
-| `s3_key`       | Text | ✅        | S3 key for the ZIP file        |
-| `s3_bucket`    | Text | ✅        | Bucket where the ZIP is stored |
-
-**Example Input from user:**
-
-```json
-{
-  "project_name": "payment-service",
-  "s3_bucket": "vineeth-autosecure-bucket",
-  "s3_key": "uploads/payment-service.zip"
-}
-```
-
----
-
-## 🔁 Step 2: Download and Extract Code (using inline prompt + memory)
-
-Since we **can't use Lambda**, we'll simulate this with prompt-based reasoning.
-
-### Node Type: **Prompt**
-
-**Title:** Download and Unzip Java Project
-
-**Prompt Example:**
-
-```plaintext
-You are an AI secure code assistant.
-
-The user uploaded a Java project to the following S3 location:
-
-- Bucket: {{s3_bucket}}
-- Key: {{s3_key}}
-
-Pretend you can access and unzip the content. Assume it’s a standard Spring Boot Java Maven project.
-
-Analyze the files for:
-- pom.xml (for dependencies)
-- src/ (for deprecated packages like javax, springfox, etc.)
-
-List:
-- All vulnerable or outdated dependencies
-- Deprecated imports or syntax
-```
-
-**Output:** structured text like:
-
-```json
-{
-  "dependencies": {
-    "spring-boot-starter-web": "2.5.0",
-    "springfox-swagger2": "2.9.2",
-    "javax.servlet-api": "4.0.1"
-  },
-  "issues": [
-    "javax is deprecated in Jakarta migration",
-    "springfox is incompatible with Spring Boot 3.x"
-  ]
-}
-```
-
-Save this output into a **memory variable**: `scan_result`
-
----
-
-## 🔁 Step 3: Ask for Upgrade Target
-
-### Node Type: **Prompt with Input**
-
-**Prompt:**
-
-```plaintext
-The following issues were found in your project "{{project_name}}":
-
-{{scan_result}}
-
-To continue with the upgrade and fix:
-Please specify:
-- Target Java version (e.g., 17, 21)
-- Target Spring Boot version (e.g., 3.1.5)
-
-Reply in the format:
-{
-  "java_version": "17",
-  "spring_boot_version": "3.1.5"
-}
-```
-
-Store this in memory: `upgrade_target`
-
----
-
-## 🔁 Step 4: Perform AutoRefactor Reasoning
-
-### Node Type: Prompt
-
-**Title:** Upgrade and Refactor
-
-**Prompt:**
-
-```plaintext
-You're an AI code upgrader. Based on this project scan:
-
-Issues: {{scan_result}}
-Upgrade Target: {{upgrade_target}}
-
-Suggest the following:
-1. Secure versions for each dependency
-2. Changes to pom.xml
-3. Deprecated import replacements (e.g., javax → jakarta)
-4. Swagger migration (e.g., springfox → springdoc)
-5. Any additional compatibility refactor needed
-
-Output:
-- Summary of changes
-- Updated pom.xml
-- Sample refactored code snippets (max 2)
-```
-
-Save result in: `upgrade_summary`
-
----
-
-## 🔁 Step 5: Present Final Output
-
-### Node Type: **Response**
-
-**Prompt (Final Node):**
-
-```plaintext
-Here is the result of the auto upgrade for project "{{project_name}}":
-
-✅ Suggested Dependency Upgrades:
-{{upgrade_summary.dependencies}}
-
-🧪 Refactor Summary:
-{{upgrade_summary.refactor_plan}}
-
-📦 Updated pom.xml:
-```
-
-*(Include updated XML snippet)*
-
-Add download option if possible (or mention user can copy changes into their repo).
-
----
-
-## 🧠 Optional Enhancements Later
-
-* Generate a downloadable `patch.diff` file using reasoning (text only).
-* Allow user to upload new version for verification.
-* Add GitHub repo support as a new branch in flow.
-
----
-
-## ✅ Summary of What You Built
-
-| Step | Description                                       |
-| ---- | ------------------------------------------------- |
-| 1    | Accept project\_name, s3\_bucket, s3\_key         |
-| 2    | Simulate unzip + scan using prompt                |
-| 3    | Ask user for Java + Spring target                 |
-| 4    | Use prompt to suggest upgrade + refactor          |
-| 5    | Respond with upgrade plan, pom.xml, and summaries |
-
----
-
-Would you like me to generate these node-by-node in `.json` or a **visual Bedrock Flow template** format next?
-
-Or do you want to now proceed with **repository URL-based flow**?
+import boto3
+import zipfile
+import os
+
+def handler(s3_file_key):
+    s3 = boto3.client("s3")
+    bucket = "autosecurex-inputs"
+
+    # Download to /tmp
+    local_zip = "/tmp/project.zip"
+    s3.download_file(bucket, s3_file_key, local_zip)
+
+    # Unzip contents to /tmp/project/
+    project_dir = "/tmp/project/"
+    with zipfile.ZipFile(local_zip, 'r') as zip_ref:
+        zip_ref.extractall(project_dir)
+
+    # Read a sample Java file (demo purpose)
+    sample_code = ""
+    for root, dirs, files in os.walk(project_dir):
+        for f in files:
+            if f.endswith(".java"):
+                with open(os.path.join(root, f)) as file:
+                    sample_code = file.read()
+                    break
+        if sample_code: break
+
+    return {
+        "project_code_sample": sample_code or "No Java file found."
+    }
