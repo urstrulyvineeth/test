@@ -1,0 +1,113 @@
+Yes, Vineeth — you can absolutely **test `AutoSecure-RefactorAgent` directly**, even without running the full Bedrock Flow. This is a great way to validate your **AI-powered refactoring logic** before wiring it into the full pipeline.
+
+---
+
+## ✅ How to Test `AutoSecure-RefactorAgent` Standalone
+
+### 🔸 Step 1: Open Amazon Bedrock Console
+
+1. Go to **Amazon Bedrock → Agents**
+2. Find or create the agent: **`AutoSecure-RefactorAgent`**
+3. Click on it to open the **Test tab**.
+
+---
+
+### 🔸 Step 2: Use This Sample Input
+
+Paste this sample `Action Input JSON` into the test console:
+
+```json
+{
+  "vulnerabilities": [
+    {
+      "library": "log4j",
+      "version": "2.14.1",
+      "severity": "CRITICAL",
+      "cve": "CVE-2021-45046"
+    },
+    {
+      "library": "spring-core",
+      "version": "5.3.5",
+      "severity": "MEDIUM",
+      "cve": "CVE-2022-22965"
+    }
+  ],
+  "deprecated_methods": [
+    "RestTemplate", 
+    "RequestMapping"
+  ],
+  "java_version": "17",
+  "spring_version": "3.1.2"
+}
+```
+
+---
+
+### 🔸 Step 3: Check Agent Instruction
+
+Your agent instruction should be something like:
+
+> "You will receive a list of Java vulnerabilities and deprecated APIs, along with a target Java and Spring Boot version. Refactor the code to fix all vulnerabilities and deprecated methods using the given versions. Return the number of issues fixed and list of updated files like pom.xml, App.java, etc."
+
+---
+
+### 🔸 Step 4: Expected Output (from Agent)
+
+You should receive something like:
+
+```json
+{
+  "fixed_count": 2,
+  "updated_files": [
+    "src/main/java/com/example/App.java",
+    "pom.xml"
+  ],
+  "notes": "Updated log4j to 2.17.2, replaced RestTemplate with WebClient."
+}
+```
+
+---
+
+## 🧠 Optional Enhancements for Testing
+
+If you're not seeing a good result:
+
+* Add examples into the **prompt** like:
+
+  ```
+  Example:
+  - Before: RestTemplate rest = new RestTemplate();
+  - After: WebClient webClient = WebClient.builder().build();
+
+  - Before: log4j:2.14.1 in pom.xml
+  - After: log4j:2.17.2
+  ```
+* Or make the model respond in a structured format like:
+
+  ```json
+  {
+    "fixed_count": <number>,
+    "updated_files": [...],
+    "explanation": "..."
+  }
+  ```
+
+---
+
+## ✅ Summary
+
+| Action                     | Status                                    |
+| -------------------------- | ----------------------------------------- |
+| Test `RefactorAgent` alone | ✅ Yes                                     |
+| Needs Bedrock Flow?        | ❌ No                                      |
+| Input Type                 | JSON                                      |
+| Output Format              | JSON or plain explanation (you define it) |
+
+---
+
+Would you like me to help:
+
+* Add test examples into your Agent prompt?
+* Improve the prompt for better structured outputs?
+
+Just say **“Refine my refactor agent prompt”** and I’ll generate it.
