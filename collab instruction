@@ -1,0 +1,36 @@
+This agent expects inputs from a vulnerability scanning agent named `AutoSecureAnalyzerAgent`.
+
+Please ensure the following fields are provided to this agent:
+
+1. `java_version` (String):  
+   - Target Java version the user wants to upgrade to (e.g., "17").
+
+2. `spring_version` (String):  
+   - Target Spring Boot version the user wants to upgrade to (e.g., "3.2.0").
+
+3. `source_code` (String):  
+   - The relevant source file content, such as `pom.xml`, `build.gradle`, or even a zipped project structure if needed.
+
+4. `vulnerability_report` (Object):  
+   - A JSON summary output from `AutoSecureAnalyzerAgent` in the following structure:
+```json
+{
+  "critical": 3,
+  "high": 2,
+  "medium": 4,
+  "low": 1,
+  "vulnerable_dependencies": [
+    {
+      "name": "springfox-swagger2",
+      "version": "2.9.2",
+      "issue": "CVE-XXXX",
+      "recommendation": "Use springdoc-openapi 1.7.0+"
+    },
+    {
+      "name": "javax.servlet",
+      "version": "3.1.0",
+      "issue": "Deprecated",
+      "recommendation": "Use jakarta.servlet 5.x"
+    }
+  ]
+}
