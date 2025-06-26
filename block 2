@@ -1,0 +1,59 @@
+import json
+import boto3
+
+# === STEP 1: Extract user input ===
+repo_url = input.get("repo_url", "").strip()
+s3_input_bucket = input.get("s3_input_bucket", "").strip()
+s3_input_key = input.get("s3_input_key", "").strip()
+inline_java_project = input.get("inline_java_project", "").strip()
+
+# === STEP 2: Determine project source type ===
+source = None
+if repo_url:
+    source = "repo"
+elif s3_input_bucket and s3_input_key:
+    source = "s3"
+elif inline_java_project:
+    source = "inline"
+
+# === STEP 3: Handle invalid or missing input ===
+if not source:
+    return {
+        "status": "error",
+        "message": "❌ No valid input received. Please provide either a GitHub URL, S3 ZIP file, or pasted Java project."
+    }
+
+# === STEP 4: Prepare input.json payload ===
+payload = {
+    "source": source,
+    "repo_url": repo_url,
+    "s3_input_bucket": s3_input_bucket,
+    "s3_input_key": s3_input_key,
+    "inline_java_project": inline_java_project
+}
+
+# === STEP 5: Upload input.json to your S3 bucket ===
+try:
+    s3 = boto3.client("s3")
+    bucket_name = "account1-env5-s3-bucket-457650192243"
+    key_path = "autosecure-input/input.json"
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key_path,
+        Body=json.dumps(payload).encode("utf-8"),
+        ContentType="application/json"
+    )
+
+    return {
+        "status": "✅ input.json uploaded successfully",
+        "bucket": bucket_name,
+        "key": key_path,
+        "source_type": source
+    }
+
+except Exception as e:
+    return {
+        "status": "error",
+        "message": f"❌ Failed to upload input.json to S3: {str(e)}"
+    }
