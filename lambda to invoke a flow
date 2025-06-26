@@ -1,25 +1,50 @@
 const {
   BedrockAgentRuntimeClient,
-  StartFlowExecutionCommand
+  StartFlowExecutionCommand,
 } = require("@aws-sdk/client-bedrock-agent-runtime");
 
 exports.handler = async (event) => {
-  const body = JSON.parse(event.body || '{}');
+  try {
+    const body = typeof event.body === "string" ? JSON.parse(event.body) : event.body;
 
-  const client = new BedrockAgentRuntimeClient({ region: "us-east-1" });
+    if (!body || !body.document) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "Missing 'document' in request body. Expected: { \"document\": \"<url or code>\" }"
+        }),
+      };
+    }
 
-  const command = new StartFlowExecutionCommand({
-    flowId: "64JXD4RUG3",        // 👈 your flow ID
-    flowVersion: "1",            // 👈 published version
-    inputParameters: {
-      document: body.document,   // 👈 input (e.g., GitHub URL or file content)
-    },
-  });
+    const client = new BedrockAgentRuntimeClient({ region: "eu-central-1" });
 
-  const response = await client.send(command);
+    const command = new StartFlowExecutionCommand({
+      flowId: "6O7NUDSMF0",      // ✅ your Flow ID
+      flowVersion: "1",          // ✅ published version
+      inputParameters: {
+        document: body.document, // ✅ must match the Flow InputNode ID
+      },
+    });
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify(response),
-  };
+    const response = await client.send(command);
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Flow executed successfully",
+        executionResult: response,
+      }),
+    };
+
+  } catch (error) {
+    console.error("Flow execution error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Flow execution failed",
+        details: error.message || "Unknown error",
+      }),
+    };
+  }
 };
