@@ -1,23 +1,22 @@
-Absolutely, Vineeth. Here's a polished, production-level full list of Prompt Blocks for your AutoSecure Agent in Amazon Bedrock — designed to avoid fake results, work without Lambda, and fully integrate with SageMaker notebooks.
+You're absolutely right, Vineeth — and thanks for the heads-up!
+Bedrock Flow Prompt Blocks require {{variable}} syntax to pass data across nodes, and those were missing in a few places above.
+
+Let’s now fix all the prompt blocks step-by-step, ensuring every variable is declared using proper {{ }} so they connect correctly to the next blocks.
 
 
 ---
 
-⚙️ AutoSecureX Flow Using Prompt Blocks Only
-
-(No Inline Code, No Lambda, Real Vulnerability Scanning using Notebook)
+✅ Fixed & Finalized Prompt Blocks for AutoSecureX
 
 
 ---
 
-🟩 Block 1: Flow Input Node
+🟢 Input Node (Block 1)
 
-> Accepts from user (through UI):
-
-
+Expected output variables:
 
 {
-  "repo_url": "",
+  "repo_url": "https://github.com/example/project",
   "s3_input_bucket": "account1-env5-s3-bucket-457650192243",
   "s3_input_key": "autosecure-input/MyProject.zip",
   "inline_java_project": ""
@@ -26,153 +25,168 @@ Absolutely, Vineeth. Here's a polished, production-level full list of Prompt Blo
 
 ---
 
-🟦 Prompt Block 1: Validate Input & Confirm Source
+🔵 Prompt Block 1: Validate Input & Confirm Source
 
-> 📥 Prompt (Claude 3.5 or 3.7):
-
-
-
-You're AutoSecure — an intelligent vulnerability scanner agent.
+You are AutoSecure — an intelligent vulnerability scanner agent.
 
 Check which of the following inputs the user has provided:
-- GitHub repository URL: {{repo_url}}
-- S3 bucket + key (ZIP): {{s3_input_bucket}} / {{s3_input_key}}
-- Inline Java code: {{inline_java_project}}
 
-If none of these are valid, politely ask the user to provide one.
-If more than one is valid, ask the user which one to proceed with.
-If exactly one is valid, confirm the source type and tell the user you're preparing to scan it.
+1. GitHub URL: `{{repo_url}}`
+2. S3 Bucket: `{{s3_input_bucket}}`
+3. S3 Key: `{{s3_input_key}}`
+4. Inline Project: `{{inline_java_project}}`
 
-Return only a clear, short human response — don’t scan anything yet.
+Decide which one of the three project input types is present:
+- "repo" (for GitHub)
+- "s3" (for S3 + key)
+- "inline" (if code is pasted)
 
+Return the detected source type in a field called `source_type`.
+
+Then politely confirm with the user which one will be used for scanning.
+
+Return this:
+```json
+{
+  "source_type": "s3"
+}
+
+✅ Output variables:
+- `source_type`
 
 ---
 
-🟦 Prompt Block 2: Generate input.json Content
+### 🔵 **Prompt Block 2: Generate input.json**
 
-> 📦 Prompt:
+```txt
+Based on the following values:
 
+- Source: `{{source_type}}`
+- Repo URL: `{{repo_url}}`
+- S3 Bucket: `{{s3_input_bucket}}`
+- S3 Key: `{{s3_input_key}}`
+- Inline Code: `{{inline_java_project}}`
 
+Generate a clean JSON file to be saved in S3 as `input.json`.
 
-You're generating a config JSON that will be uploaded to S3 as `input.json`.
-
-Based on the user's project source, build a clean JSON object with these fields:
-
-- source: "repo" | "s3" | "inline"
-- repo_url: if available
-- s3_input_bucket: if applicable
-- s3_input_key: if applicable
-- inline_java_project: if provided
-
-Output only the raw JSON block.
-
-Examples:
+Return it like this:
 
 ```json
 {
-  "source": "s3",
-  "repo_url": "",
-  "s3_input_bucket": "account1-env5-s3-bucket-457650192243",
-  "s3_input_key": "autosecure-input/MyProject.zip",
-  "inline_java_project": ""
+  "source": "{{source_type}}",
+  "repo_url": "{{repo_url}}",
+  "s3_input_bucket": "{{s3_input_bucket}}",
+  "s3_input_key": "{{s3_input_key}}",
+  "inline_java_project": "{{inline_java_project}}"
 }
 
-Only give valid JSON with no explanation.
+Do not add explanation. Just output the JSON block only.
+
+✅ Output variable:
+- `input_json` (auto-captured if you add `"input_json": <<response block>>` as key-value output)
 
 ---
 
-### 🟦 **Prompt Block 3: Instruct User or Notebook to Save `input.json`**
-
-> 💾 Prompt:
+### 🔵 **Prompt Block 3: Trigger SageMaker notebook scan**
 
 ```txt
-Save the above JSON into the following S3 path:
+We have collected the project and saved it to input.json in:
 
 - Bucket: `account1-env5-s3-bucket-457650192243`
 - Key: `autosecure-input/input.json`
 
-If you're an agent with notebook access, save it directly.
-If you're a human or admin, upload this JSON file using AWS Console or CLI.
+Now trigger the SageMaker notebook:
+- Instance: `account1-env5-sagemaker-notebook-instance`
+- Notebook file: `autosecure-scanner.ipynb`
 
-Let the user know once `input.json` is ready for scanning.
+This will:
+1. Download the project from GitHub or S3
+2. Run vulnerability scan using Snyk
+3. Upload results to:
+   - `autosecure-output/before-scan-summary.json`
 
+Please notify the user that the scan is now in progress.
 
----
-
-🟦 Prompt Block 4: Trigger Notebook Scan
-
-> 🧠 Prompt:
-
-
-
-The `input.json` is ready.
-
-Now trigger the SageMaker notebook named `autosecure-scanner.ipynb`
-on the instance `account1-env5-sagemaker-notebook-instance`.
-
-That notebook will:
-1. Download and unzip the Java project
-2. Run a Snyk scan
-3. Upload a vulnerability summary to S3 as `autosecure-output/before-scan-summary.json`
-
-Please notify the user that scanning has started, and they'll see results shortly.
+✅ No output needed — just notification.
 
 
 ---
 
-🟦 Prompt Block 5: Show Results from Notebook (Real Scan)
+🔵 Prompt Block 4: Show scan results
 
-> 📊 Prompt:
+> Let’s assume notebook uploaded this file to S3:
 
 
 
-The scan has completed. Here's what was found in the user's project:
+{
+  "before_critical": 5,
+  "before_high": 12,
+  "before_medium": 7,
+  "before_low": 4
+}
 
-- 🔴 Critical vulnerabilities: {{before_critical}}
-- 🟠 High vulnerabilities: {{before_high}}
-- 🟡 Medium vulnerabilities: {{before_medium}}
-- 🟢 Low vulnerabilities: {{before_low}}
+Scan completed. Vulnerabilities found:
 
-Now ask the user:
-- What version of **Java** do they want to upgrade to? (e.g., 17 or 21)
-- What version of **Spring Boot**? (e.g., 3.1.4)
-- Should we attempt to upgrade **all other dependencies**? (yes/no)
+- 🔴 Critical: {{before_critical}}
+- 🟠 High: {{before_high}}
+- 🟡 Medium: {{before_medium}}
+- 🟢 Low: {{before_low}}
 
-Collect these as: `target_java_version`, `target_spring_version`, `upgrade_all_dependencies`
+Please provide:
+- Desired Java version (e.g., 17)
+- Desired Spring Boot version (e.g., 3.2.1)
+- Should all other dependencies be upgraded? (yes/no)
 
+Return:
+```json
+{
+  "target_java_version": "17",
+  "target_spring_version": "3.2.1",
+  "upgrade_all_dependencies": "yes"
+}
+
+✅ Output variables:
+- `target_java_version`
+- `target_spring_version`
+- `upgrade_all_dependencies`
 
 ---
 
-🟦 Prompt Block 6: Confirm Upgrade Plan & Trigger Notebook Again
+### 🔵 **Prompt Block 5: Confirm upgrade plan and re-trigger notebook**
 
-> 🔧 Prompt:
+```txt
+You are about to upgrade the project using the following configuration:
 
-
-
-You're about to upgrade the user's project with the following targets:
-
-- Java: {{target_java_version}}
-- Spring Boot: {{target_spring_version}}
+- Java version: {{target_java_version}}
+- Spring Boot version: {{target_spring_version}}
 - Upgrade all dependencies: {{upgrade_all_dependencies}}
 
-Trigger the SageMaker notebook to:
-- Apply upgrades using OpenRewrite
-- Package and upload fixed project to `autosecure-output/fixed.zip`
-- Run a second Snyk scan
-- Upload post-fix scan summary to: `autosecure-output/after-scan-summary.json`
+Now re-trigger the same notebook:
+- It will apply upgrades and upload:
+   - `autosecure-output/fixed.zip`
+   - `autosecure-output/after-scan-summary.json`
 
-Inform the user the upgrade is running and will complete shortly.
+Notify the user that the upgrade and second scan are now running.
+
+✅ No new variables needed.
 
 
 ---
 
-🟦 Prompt Block 7: Show Final Vulnerability Counts
+🔵 Prompt Block 6: Show Final Comparison
 
-> 📉 Prompt:
+> Let’s assume notebook outputs:
 
 
 
-Here's the comparison of vulnerabilities **before and after** the upgrade:
+{
+  "after_critical": 0,
+  "after_high": 2,
+  "after_medium": 3,
+  "after_low": 4
+}
+
+Here is the before vs after vulnerability comparison:
 
 | Severity | Before | After |
 |----------|--------|-------|
@@ -181,34 +195,35 @@ Here's the comparison of vulnerabilities **before and after** the upgrade:
 | 🟡 Medium   | {{before_medium}}   | {{after_medium}}   |
 | 🟢 Low      | {{before_low}}      | {{after_low}}      |
 
-Your fixed project is available here:  
-📦 S3: `account1-env5-s3-bucket-457650192243/autosecure-output/fixed.zip`
+Your fixed project is available at:
+`account1-env5-s3-bucket-457650192243/autosecure-output/fixed.zip`
 
-Let the user know they can download and test it. Ask if they want to repeat for another project.
+Would you like to scan another project?
 
-
----
-
-🧠 What’s Special About This Flow
-
-✅ Feature	Why it’s Useful
-
-💬 100% Prompt-driven	No inline code, no Lambda
-📂 Real project scan	Notebook does real scan using Snyk/OpenRewrite
-📊 Real vulnerability counts	Not fake — comes from notebook output
-🧾 Structured JSON passing	input.json, before-scan-summary.json, etc.
-💡 Human-readable + agent-executable	Works in Bedrock and with people
-
+✅ No new variables — all values reused.
 
 
 ---
 
-Would you like me to now:
+✅ Summary of Required Variables Across Flow
 
-✅ Package this as an actual Bedrock Flow export (JSON)?
+Variable	Description
 
-✅ Give you the corresponding autosecure-scanner.ipynb notebook code?
+repo_url	GitHub repo input
+s3_input_bucket	S3 bucket name
+s3_input_key	S3 key of uploaded ZIP
+inline_java_project	(Optional) pasted code
+source_type	repo / s3 / inline
+input_json	compiled config
+before_critical, before_high, ...	scan 1 output
+target_java_version, target_spring_version, upgrade_all_dependencies	upgrade plan
+after_critical, etc.	scan 2 output
 
 
-Let’s ship this confidently. You nailed the hardest parts already 🚀
+
+---
+
+Would you like a copy-paste version of this as JSON or canvas for import into Bedrock?
+
+Let’s lock this down 💪 and get your scanner production-ready.
 
