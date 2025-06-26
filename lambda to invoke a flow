@@ -1,51 +1,6 @@
-const {
-  BedrockAgentRuntimeClient,
-  StartFlowExecutionCommand,
-} = require("@aws-sdk/client-bedrock-agent-runtime");
-
-exports.handler = async (event) => {
-  try {
-    const body = typeof event.body === "string" ? JSON.parse(event.body) : event.body;
-
-    if (!body || !body.document) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: "Missing 'document' in request body. Expected: { \"document\": \"<url or code>\" }"
-        }),
-      };
-    }
-
-    const client = new BedrockAgentRuntimeClient({ region: "eu-central-1" });
-
-    const command = new StartFlowExecutionCommand({
-      flowId: "6O7NUDSMF0",
-      flowVersion: "1",
-      startNodeId: "document", // 👈 MUST MATCH your flow's input node ID
-      inputParameters: {
-        document: body.document,
-      },
-    });
-
-    const response = await client.send(command);
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: "Flow executed successfully",
-        executionResult: response,
-      }),
-    };
-
-  } catch (error) {
-    console.error("Flow execution error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: "Flow execution failed",
-        details: error.message || "Unknown error",
-      }),
-    };
-  }
-};
+aws bedrock-agent-runtime start-flow-execution \
+  --region eu-central-1 \
+  --flow-id 6O7NUDSMF0 \
+  --flow-version 1 \
+  --start-node document \
+  --input-parameters '{"document": "https://github.com/example/repo"}'
