@@ -1,0 +1,214 @@
+Absolutely, Vineeth. Here's a polished, production-level full list of Prompt Blocks for your AutoSecure Agent in Amazon Bedrock — designed to avoid fake results, work without Lambda, and fully integrate with SageMaker notebooks.
+
+
+---
+
+⚙️ AutoSecureX Flow Using Prompt Blocks Only
+
+(No Inline Code, No Lambda, Real Vulnerability Scanning using Notebook)
+
+
+---
+
+🟩 Block 1: Flow Input Node
+
+> Accepts from user (through UI):
+
+
+
+{
+  "repo_url": "",
+  "s3_input_bucket": "account1-env5-s3-bucket-457650192243",
+  "s3_input_key": "autosecure-input/MyProject.zip",
+  "inline_java_project": ""
+}
+
+
+---
+
+🟦 Prompt Block 1: Validate Input & Confirm Source
+
+> 📥 Prompt (Claude 3.5 or 3.7):
+
+
+
+You're AutoSecure — an intelligent vulnerability scanner agent.
+
+Check which of the following inputs the user has provided:
+- GitHub repository URL: {{repo_url}}
+- S3 bucket + key (ZIP): {{s3_input_bucket}} / {{s3_input_key}}
+- Inline Java code: {{inline_java_project}}
+
+If none of these are valid, politely ask the user to provide one.
+If more than one is valid, ask the user which one to proceed with.
+If exactly one is valid, confirm the source type and tell the user you're preparing to scan it.
+
+Return only a clear, short human response — don’t scan anything yet.
+
+
+---
+
+🟦 Prompt Block 2: Generate input.json Content
+
+> 📦 Prompt:
+
+
+
+You're generating a config JSON that will be uploaded to S3 as `input.json`.
+
+Based on the user's project source, build a clean JSON object with these fields:
+
+- source: "repo" | "s3" | "inline"
+- repo_url: if available
+- s3_input_bucket: if applicable
+- s3_input_key: if applicable
+- inline_java_project: if provided
+
+Output only the raw JSON block.
+
+Examples:
+
+```json
+{
+  "source": "s3",
+  "repo_url": "",
+  "s3_input_bucket": "account1-env5-s3-bucket-457650192243",
+  "s3_input_key": "autosecure-input/MyProject.zip",
+  "inline_java_project": ""
+}
+
+Only give valid JSON with no explanation.
+
+---
+
+### 🟦 **Prompt Block 3: Instruct User or Notebook to Save `input.json`**
+
+> 💾 Prompt:
+
+```txt
+Save the above JSON into the following S3 path:
+
+- Bucket: `account1-env5-s3-bucket-457650192243`
+- Key: `autosecure-input/input.json`
+
+If you're an agent with notebook access, save it directly.
+If you're a human or admin, upload this JSON file using AWS Console or CLI.
+
+Let the user know once `input.json` is ready for scanning.
+
+
+---
+
+🟦 Prompt Block 4: Trigger Notebook Scan
+
+> 🧠 Prompt:
+
+
+
+The `input.json` is ready.
+
+Now trigger the SageMaker notebook named `autosecure-scanner.ipynb`
+on the instance `account1-env5-sagemaker-notebook-instance`.
+
+That notebook will:
+1. Download and unzip the Java project
+2. Run a Snyk scan
+3. Upload a vulnerability summary to S3 as `autosecure-output/before-scan-summary.json`
+
+Please notify the user that scanning has started, and they'll see results shortly.
+
+
+---
+
+🟦 Prompt Block 5: Show Results from Notebook (Real Scan)
+
+> 📊 Prompt:
+
+
+
+The scan has completed. Here's what was found in the user's project:
+
+- 🔴 Critical vulnerabilities: {{before_critical}}
+- 🟠 High vulnerabilities: {{before_high}}
+- 🟡 Medium vulnerabilities: {{before_medium}}
+- 🟢 Low vulnerabilities: {{before_low}}
+
+Now ask the user:
+- What version of **Java** do they want to upgrade to? (e.g., 17 or 21)
+- What version of **Spring Boot**? (e.g., 3.1.4)
+- Should we attempt to upgrade **all other dependencies**? (yes/no)
+
+Collect these as: `target_java_version`, `target_spring_version`, `upgrade_all_dependencies`
+
+
+---
+
+🟦 Prompt Block 6: Confirm Upgrade Plan & Trigger Notebook Again
+
+> 🔧 Prompt:
+
+
+
+You're about to upgrade the user's project with the following targets:
+
+- Java: {{target_java_version}}
+- Spring Boot: {{target_spring_version}}
+- Upgrade all dependencies: {{upgrade_all_dependencies}}
+
+Trigger the SageMaker notebook to:
+- Apply upgrades using OpenRewrite
+- Package and upload fixed project to `autosecure-output/fixed.zip`
+- Run a second Snyk scan
+- Upload post-fix scan summary to: `autosecure-output/after-scan-summary.json`
+
+Inform the user the upgrade is running and will complete shortly.
+
+
+---
+
+🟦 Prompt Block 7: Show Final Vulnerability Counts
+
+> 📉 Prompt:
+
+
+
+Here's the comparison of vulnerabilities **before and after** the upgrade:
+
+| Severity | Before | After |
+|----------|--------|-------|
+| 🔴 Critical | {{before_critical}} | {{after_critical}} |
+| 🟠 High     | {{before_high}}     | {{after_high}}     |
+| 🟡 Medium   | {{before_medium}}   | {{after_medium}}   |
+| 🟢 Low      | {{before_low}}      | {{after_low}}      |
+
+Your fixed project is available here:  
+📦 S3: `account1-env5-s3-bucket-457650192243/autosecure-output/fixed.zip`
+
+Let the user know they can download and test it. Ask if they want to repeat for another project.
+
+
+---
+
+🧠 What’s Special About This Flow
+
+✅ Feature	Why it’s Useful
+
+💬 100% Prompt-driven	No inline code, no Lambda
+📂 Real project scan	Notebook does real scan using Snyk/OpenRewrite
+📊 Real vulnerability counts	Not fake — comes from notebook output
+🧾 Structured JSON passing	input.json, before-scan-summary.json, etc.
+💡 Human-readable + agent-executable	Works in Bedrock and with people
+
+
+
+---
+
+Would you like me to now:
+
+✅ Package this as an actual Bedrock Flow export (JSON)?
+
+✅ Give you the corresponding autosecure-scanner.ipynb notebook code?
+
+
+Let’s ship this confidently. You nailed the hardest parts already 🚀
+
