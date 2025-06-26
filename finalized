@@ -1,0 +1,285 @@
+Perfect, Vineeth. Here's a **step-by-step, detailed process** to achieve the full **AutoSecure Java Vulnerability Fixing Flow using Amazon Bedrock Agents and Flows** — from start to deployment.
+
+---
+
+# 🚀 Full Implementation Plan: AutoSecure in Amazon Bedrock
+
+---
+
+## 🔧 Step 0: 🛠️ Prerequisites & Setup
+
+### ✅ What you need:
+
+* **AWS Account** with:
+
+  * Bedrock enabled in your region (e.g., `us-east-1`)
+  * Permissions to use: Bedrock Agents, Bedrock Flows, Lambda (if needed), GitHub API access (personal token if needed)
+* **Bedrock Console access**
+* Optional: S3 Bucket to store intermediate results or logs
+
+---
+
+## 🧠 Step 1: Create Agents in Amazon Bedrock
+
+### 🎯 Purpose: Create 3 modular agents to be called in your Flow
+
+---
+
+### 1️⃣ Agent 1: `AutoSecure-GitHubScanner`
+
+#### 📍Goal:
+
+* Clone the GitHub repo
+* Run OWASP Dependency Check or Snyk
+* Identify vulnerable libraries + deprecated Java/Spring usage
+
+#### 🛠️ How to create:
+
+1. Go to **Bedrock → Agents → Create Agent**
+
+2. Fill:
+
+   * **Name**: `AutoSecure-GitHubScanner`
+   * **Instruction**:
+
+     ```
+     You will receive a GitHub repository URL. Clone the repo and detect all Java dependencies that have CVEs (Common Vulnerabilities and Exposures). Use tools like OWASP Dependency Check or Snyk. Also identify deprecated Java or Spring APIs.
+     Return results in JSON.
+     ```
+   * **Foundation Model**: `Claude 3 Sonnet` or `GPT-4`
+
+3. In **Actions** tab:
+
+   * Create one action called `ScanRepo`
+
+   * Use this input schema:
+
+     ```json
+     {
+       "type": "object",
+       "properties": {
+         "github_url": { "type": "string" }
+       },
+       "required": ["github_url"]
+     }
+     ```
+
+   * Output schema:
+
+     ```json
+     {
+       "type": "object",
+       "properties": {
+         "vulnerabilities": {
+           "type": "array",
+           "items": {
+             "type": "object",
+             "properties": {
+               "library": { "type": "string" },
+               "version": { "type": "string" },
+               "severity": { "type": "string" }
+             }
+           }
+         },
+         "deprecated_methods": {
+           "type": "array",
+           "items": { "type": "string" }
+         }
+       }
+     }
+     ```
+
+4. Save & Test agent by providing a test repo URL.
+
+---
+
+### 2️⃣ Agent 2: `AutoSecure-RefactorAgent`
+
+#### 📍Goal:
+
+* Use GPT to fix deprecated methods & CVEs based on Java/Spring version
+
+#### 🛠️ How to create:
+
+* **Name**: `AutoSecure-RefactorAgent`
+
+* **Instruction**:
+
+  ```
+  Refactor the Java project to fix all vulnerabilities and deprecated methods using the given Java and Spring version. Modify pom.xml if needed and return list of files updated and number of issues fixed.
+  ```
+
+* Create an action `RefactorVulnerabilities`
+
+  * Input schema:
+
+    ```json
+    {
+      "type": "object",
+      "properties": {
+        "vulnerabilities": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "deprecated_methods": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "java_version": { "type": "string" },
+        "spring_version": { "type": "string" }
+      },
+      "required": ["vulnerabilities", "deprecated_methods", "java_version", "spring_version"]
+    }
+    ```
+
+  * Output schema:
+
+    ```json
+    {
+      "type": "object",
+      "properties": {
+        "fixed_count": { "type": "integer" },
+        "updated_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+    ```
+
+---
+
+### 3️⃣ Prompt Step (Inline in Flow):
+
+You'll ask the user:
+🗨️ "Please enter the Java version and Spring version you want to upgrade to."
+
+This doesn’t need an agent — it's a prompt step inside the flow.
+
+---
+
+## 🔁 Step 2: Create the Bedrock Flow
+
+### 🎯 Goal: Connect the agents in order with correct data flow.
+
+---
+
+### 🔹 Open **Bedrock > Flows > Create Flow**
+
+#### 📋 Flow Summary:
+
+| Step ID        | Type   | What it does                     |
+| -------------- | ------ | -------------------------------- |
+| `InputStep`    | Input  | Takes GitHub repo URL            |
+| `ScanStep`     | Agent  | Calls `AutoSecure-GitHubScanner` |
+| `PromptStep`   | Prompt | Asks for Java/Spring version     |
+| `RefactorStep` | Agent  | Calls `AutoSecure-RefactorAgent` |
+| `OutputStep`   | Output | Shows summary                    |
+
+---
+
+### 🔧 YAML-like Flow Definition:
+
+```yaml
+flow:
+  name: AutoSecureJavaFixFlow
+  input:
+    - github_url
+
+  steps:
+    - id: ScanStep
+      type: agent
+      agentId: AutoSecure-GitHubScanner
+      actionId: ScanRepo
+      parameters:
+        github_url: $input.github_url
+      outputs:
+        - vulnerabilities
+        - deprecated_methods
+
+    - id: PromptStep
+      type: prompt
+      prompt: |
+        Please enter the Java version and Spring version you want to upgrade to.
+      outputs:
+        - java_version
+        - spring_version
+
+    - id: RefactorStep
+      type: agent
+      agentId: AutoSecure-RefactorAgent
+      actionId: RefactorVulnerabilities
+      parameters:
+        vulnerabilities: $ScanStep.vulnerabilities
+        deprecated_methods: $ScanStep.deprecated_methods
+        java_version: $PromptStep.java_version
+        spring_version: $PromptStep.spring_version
+      outputs:
+        - fixed_count
+        - updated_files
+
+    - id: OutputStep
+      type: output
+      parameters:
+        message: "Scan complete. Fixed $RefactorStep.fixed_count vulnerabilities."
+        files_updated: $RefactorStep.updated_files
+```
+
+You can enter this in the **Bedrock visual flow builder UI** by adding nodes manually or upload via a YAML file if AWS enables it.
+
+---
+
+## ✅ Step 3: Test the Flow
+
+1. Deploy the flow
+2. Call it via console or REST endpoint
+3. Input sample GitHub repo (Java-based)
+4. Provide Java & Spring version when asked
+5. Get result: fixed count and file list
+
+---
+
+## 🧪 Example GitHub Repo for Testing
+
+You can use a sample repo like:
+
+```
+https://github.com/snyk/java-goof
+```
+
+Or create your own with:
+
+* `log4j`, `commons-collections`, `spring-core` etc. in outdated versions in `pom.xml`
+
+---
+
+## 🚀 Future Enhancements
+
+| Feature              | Description                              |
+| -------------------- | ---------------------------------------- |
+| GitHub PR Agent      | Create PR using GitHub API with changes  |
+| Slack Integration    | Notify team about vulnerabilities fixed  |
+| Jenkins Plugin       | Auto trigger via CI/CD                   |
+| UI Dashboard (React) | View vulnerabilities, click-to-fix style |
+
+---
+
+## ✅ Summary Checklist
+
+| Step                         | Completed? |
+| ---------------------------- | ---------- |
+| Create Agent: GitHub Scanner | ✅          |
+| Create Agent: Refactor Agent | ✅          |
+| Design Prompt for Version    | ✅          |
+| Build Bedrock Flow           | ✅          |
+| Test with real GitHub repo   | 🔄         |
+
+---
+
+Would you like:
+
+* AWS CLI/CloudFormation script to automate this setup?
+* GitHub PR generation agent with real token auth?
+* React frontend to interact with this via API?
+
+Let me know, and I’ll build that next for you.
