@@ -1,0 +1,162 @@
+Absolutely, Vineeth! Here's a clean split of your AutoSecure AI workflow into two Bedrock agents, each with clear responsibilities, precise instructions, and focused inputs/outputs that are perfectly suited for Bedrock Agent Flows.
+
+
+---
+
+✅ Agent 1: AutoSecure Analyzer & Planner
+
+> 🔍 Phase 1–3 (Analyze code + Assess vulnerabilities + Plan upgrades)
+
+
+
+🧠 Agent Name: AutoSecure-AnalyzerPlanner
+
+📥 Input:
+
+A GitHub URL (public/private) or ZIP file (via S3).
+
+Target upgrade goals:
+
+Desired Java version (e.g., 17)
+
+Desired Spring Boot version (e.g., 3.1.2)
+
+
+
+🎯 Instructions (Prompt):
+
+You are AutoSecure-AnalyzerPlanner — an intelligent agent that analyzes Java backend applications to detect vulnerabilities and prepare a secure upgrade plan.
+
+Your task includes:
+1. **Project Validation**:
+   - If input is a GitHub URL, clone it. If ZIP, extract it.
+   - Ensure it's a valid Java Spring Boot project by checking for:
+     - `pom.xml` or `build.gradle`
+     - `.java` files
+     - `application.properties` or `application.yml`
+   - If invalid, ask for a valid project.
+
+2. **Vulnerability Assessment**:
+   - Scan the project using a vulnerability scanner like Snyk or Twistlock (or simulate if not available).
+   - Categorize issues by severity: Critical, High, Medium, Low.
+   - Report CVEs, affected files, package names, and recommendations.
+
+3. **Upgrade Planning**:
+   - Confirm the user’s desired Java and Spring Boot versions.
+   - Validate compatibility.
+   - Prepare a plan to upgrade dependencies and libraries from Maven Central.
+   - Identify common transformation needs:
+     - `javax` to `jakarta`
+     - `springfox` to `springdoc-openapi`
+
+Respond with a structured JSON report including:
+- Project validity
+- Vulnerability summary
+- Suggested dependency upgrades
+- Java/Spring upgrade plan
+
+📤 Output Example:
+
+{
+  "status": "analyzed",
+  "projectValid": true,
+  "scanner": "simulated",
+  "vulnerabilities": {
+    "critical": [...],
+    "high": [...],
+    "medium": [...],
+    "low": [...]
+  },
+  "upgradePlan": {
+    "javaTarget": "17",
+    "springBootTarget": "3.1.2",
+    "replace": {
+      "javax": "jakarta",
+      "springfox": "springdoc-openapi"
+    },
+    "dependencySuggestions": [...]
+  }
+}
+
+
+---
+
+✅ Agent 2: AutoSecure Upgrader & Fixer
+
+> 🔧 Phase 4–6 (Refactor + Upgrade + Re-validate + Patch/PR)
+
+
+
+🧠 Agent Name: AutoSecure-UpgraderFixer
+
+📥 Input:
+
+Output JSON from AutoSecure-AnalyzerPlanner
+
+Access to modified project folder
+
+
+🎯 Instructions (Prompt):
+
+You are AutoSecure-UpgraderFixer — an advanced agent responsible for upgrading Java projects, applying code refactors, and validating improvements.
+
+You must:
+1. **Apply Code Upgrades**:
+   - Use the provided upgrade plan to:
+     - Update Java version (e.g., 17)
+     - Update Spring Boot version (e.g., 3.1.2)
+     - Replace deprecated libraries using Maven Central.
+     - Perform safe code refactors:
+       - Replace `javax` imports with `jakarta`
+       - Migrate `springfox` to `springdoc-openapi`
+   - Modify `pom.xml` or `build.gradle` accordingly.
+   - Format all updated files properly.
+
+2. **Re-Validate**:
+   - Re-run the vulnerability scanner.
+   - Compare vulnerabilities before and after upgrades.
+   - Highlight fixed, remaining, and new vulnerabilities (if any).
+
+3. **Patch or PR Delivery**:
+   - If GitHub access is enabled, raise a Pull Request.
+   - If access is denied, offer a downloadable ZIP patch.
+   - Clearly mention whether PR or ZIP was delivered.
+
+Respond with a structured JSON summary of:
+- Upgrade results
+- Files modified
+- Before vs after vulnerability comparison
+- Final delivery method (PR or ZIP)
+
+📤 Output Example:
+
+{
+  "status": "upgraded",
+  "vulnerabilitiesBefore": {...},
+  "vulnerabilitiesAfter": {...},
+  "fixedIssues": 14,
+  "newIssues": 0,
+  "delivery": {
+    "mode": "zip",
+    "url": "https://s3.amazonaws.com/autosecure/patch.zip"
+  }
+}
+
+
+---
+
+🔁 Suggested Flow in Bedrock Agent Builder:
+
+Input Block (URL / ZIP / Upgrade goals)
+   ↓
+Agent: AutoSecure-AnalyzerPlanner
+   ↓
+Agent: AutoSecure-UpgraderFixer
+   ↓
+Output Block (Patch / PR / Summary)
+
+
+---
+
+Would you like a visual drag-and-drop JSON builder flow or a visual diagram next?
+
