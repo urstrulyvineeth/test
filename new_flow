@@ -1,0 +1,239 @@
+Absolutely, Vineeth. Below is the **clean, detailed, hackathon-grade breakdown** of what agents you need to create, the **exact instructions to give to each**, and how to structure the **Bedrock Flow** from end to end — including prompts, agent configs, flow steps, and Lambda involvement.
+
+---
+
+# 🧱 AUTOSECURE – CLEAN & DETAILED IMPLEMENTATION PLAN
+
+## 🎯 Use Case:
+
+> User gives **GitHub repo or S3 ZIP URL**. AutoSecure scans for Java vulnerabilities using **OWASP Dependency-Check**, displays the results, asks for Java/Spring version, uses **LLM** to fix them, and reports what was fixed.
+
+---
+
+## 🧠 AGENT OVERVIEW
+
+### 🔹 Agent 1: `AutoSecure-GitHubScannerAgent`
+
+| Field           | Value                                    |
+| --------------- | ---------------------------------------- |
+| **Purpose**     | Clone GitHub project and scan with OWASP |
+| **Instruction** |                                          |
+
+> "You will receive a GitHub URL. Clone the repository and scan the Java project using OWASP Dependency-Check. Return the vulnerability count, list of vulnerable libraries with CVEs and severity, and common deprecated Java or Spring APIs found."
+
+\| **Input Parameters** |
+
+```json
+{
+  "source_url": "https://github.com/user/repo.git"
+}
+```
+
+\| **Output Example** |
+
+```json
+{
+  "original_count": 5,
+  "vulnerabilities": [
+    {
+      "library": "log4j",
+      "version": "2.14.1",
+      "severity": "CRITICAL",
+      "cve": "CVE-2021-45046"
+    }
+  ],
+  "deprecated_methods": ["RestTemplate", "RequestMapping"]
+}
+```
+
+---
+
+### 🔹 Agent 2: `AutoSecure-S3ScannerAgent`
+
+| Field           | Value                                |
+| --------------- | ------------------------------------ |
+| **Purpose**     | Extract S3 ZIP file, scan with OWASP |
+| **Instruction** |                                      |
+
+> "You will receive an S3 URL pointing to a zipped Java project. Download and extract the file, then scan it using OWASP Dependency-Check. Return the vulnerability count, list of libraries with CVEs and severity, and common deprecated Java or Spring APIs."
+
+\| **Input Parameters** |
+
+```json
+{
+  "source_url": "s3://bucket/project.zip"
+}
+```
+
+\| **Output** | Same structure as GitHubScannerAgent |
+
+---
+
+### 🔹 Agent 3: `AutoSecure-RefactorAgent`
+
+| Field           | Value                                                  |
+| --------------- | ------------------------------------------------------ |
+| **Purpose**     | Use GPT/Claude to refactor Java code to newer versions |
+| **Instruction** |                                                        |
+
+> "You will receive a list of Java vulnerabilities, deprecated APIs, and a target Java and Spring Boot version. Based on this, fix the code and update the dependencies. Return number of vulnerabilities fixed and list of updated files."
+
+\| **Input Parameters** |
+
+```json
+{
+  "vulnerabilities": [...],
+  "deprecated_methods": [...],
+  "java_version": "17",
+  "spring_version": "3.1.2"
+}
+```
+
+\| **Output Example** |
+
+```json
+{
+  "fixed_count": 4,
+  "updated_files": ["App.java", "pom.xml"]
+}
+```
+
+---
+
+## 🔁 FLOW STRUCTURE (Step-by-Step)
+
+### 🔹 Step 1: `InputStep`
+
+* **Purpose**: Take source input from user
+* **Inputs**:
+
+```json
+{
+  "source_url": "https://github.com/xyz/repo.git" or "s3://bucket/project.zip",
+  "source_type": "github" or "s3"
+}
+```
+
+---
+
+### 🔹 Step 2: `RouteSourceType` (Condition Step)
+
+* **Purpose**: Decide whether to call GitHub or S3 agent
+* **Condition**:
+
+```yaml
+$input.source_type == "github"
+```
+
+* If true → Go to `GitHubScannerAgent`
+* If false → Go to `S3ScannerAgent`
+
+---
+
+### 🔹 Step 3: `GitHubScannerAgent` (Agent 1)
+
+* **Agent ID**: `AutoSecure-GitHubScannerAgent`
+* **Parameters**:
+
+```yaml
+source_url: $input.source_url
+```
+
+---
+
+### 🔹 Step 4: `S3ScannerAgent` (Agent 2)
+
+* **Agent ID**: `AutoSecure-S3ScannerAgent`
+* **Parameters**:
+
+```yaml
+source_url: $input.source_url
+```
+
+---
+
+### 🔹 Step 5: `ShowVulnerabilitiesPrompt`
+
+* **Type**: Prompt
+* **Prompt Text**:
+
+```plaintext
+We found the following vulnerabilities in your project:
+{{ GitHubScannerAgent.vulnerabilities || S3ScannerAgent.vulnerabilities }}
+
+Please enter the Java version and Spring Boot version you want to upgrade to.
+```
+
+* **Outputs**:
+
+```json
+{
+  "java_version": "17",
+  "spring_version": "3.1.2"
+}
+```
+
+---
+
+### 🔹 Step 6: `RefactorAgent` (Agent 3)
+
+* **Agent ID**: `AutoSecure-RefactorAgent`
+* **Parameters**:
+
+```yaml
+vulnerabilities: $GitHubScannerAgent.vulnerabilities || $S3ScannerAgent.vulnerabilities
+deprecated_methods: $GitHubScannerAgent.deprecated_methods || $S3ScannerAgent.deprecated_methods
+java_version: $ShowVulnerabilitiesPrompt.java_version
+spring_version: $ShowVulnerabilitiesPrompt.spring_version
+```
+
+---
+
+### 🔹 Step 7: `OutputSummaryStep`
+
+* **Type**: Output
+* **Output Text**:
+
+```plaintext
+✅ AutoSecure Scan Complete!
+
+🔢 Total Vulnerabilities: $GitHubScannerAgent.original_count || $S3ScannerAgent.original_count  
+🔧 Fixed by AI: $RefactorAgent.fixed_count  
+📁 Files Updated: $RefactorAgent.updated_files  
+
+Success Rate: {{ ($RefactorAgent.fixed_count / $GitHubScannerAgent.original_count || $S3ScannerAgent.original_count) * 100 }}%
+```
+
+---
+
+## ✅ Summary of Agents and Instructions
+
+| Agent Name                    | Role                            | Instruction   |
+| ----------------------------- | ------------------------------- | ------------- |
+| AutoSecure-GitHubScannerAgent | Clone GitHub and run OWASP scan | ✅ Given above |
+| AutoSecure-S3ScannerAgent     | Download from S3 & scan project | ✅ Given above |
+| AutoSecure-RefactorAgent      | Fix issues using AI             | ✅ Given above |
+
+---
+
+## ✅ Summary of Flow Steps
+
+| Step ID                     | Type      | Description                     |
+| --------------------------- | --------- | ------------------------------- |
+| `InputStep`                 | Input     | Get `source_url`, `source_type` |
+| `RouteSourceType`           | Condition | Check `source_type`             |
+| `GitHubScannerAgent`        | Agent     | GitHub → Lambda #1              |
+| `S3ScannerAgent`            | Agent     | S3 → Lambda #1                  |
+| `ShowVulnerabilitiesPrompt` | Prompt    | Show issues + get Java/Spring   |
+| `RefactorAgent`             | Agent     | AI Fixer                        |
+| `OutputSummaryStep`         | Output    | Display final results           |
+
+---
+
+Would you like me to now:
+
+1. 🗂️ Package this in downloadable flow YAML format?
+2. 🧪 Share test GitHub/S3 projects?
+3. 🛠️ Give Lambda ZIPs for OWASP scanning?
+
+Just say **“Give me build pack”** and I’ll generate everything for you now.
