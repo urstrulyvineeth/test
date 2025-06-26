@@ -1,0 +1,25 @@
+const {
+  BedrockAgentRuntimeClient,
+  StartFlowExecutionCommand
+} = require("@aws-sdk/client-bedrock-agent-runtime");
+
+exports.handler = async (event) => {
+  const body = JSON.parse(event.body || '{}');
+
+  const client = new BedrockAgentRuntimeClient({ region: "us-east-1" });
+
+  const command = new StartFlowExecutionCommand({
+    flowId: "64JXD4RUG3",        // 👈 your flow ID
+    flowVersion: "1",            // 👈 published version
+    inputParameters: {
+      document: body.document,   // 👈 input (e.g., GitHub URL or file content)
+    },
+  });
+
+  const response = await client.send(command);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(response),
+  };
+};
