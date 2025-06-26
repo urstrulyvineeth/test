@@ -19,10 +19,11 @@ exports.handler = async (event) => {
     const client = new BedrockAgentRuntimeClient({ region: "eu-central-1" });
 
     const command = new StartFlowExecutionCommand({
-      flowId: "6O7NUDSMF0",      // ✅ your Flow ID
-      flowVersion: "1",          // ✅ published version
+      flowId: "6O7NUDSMF0",
+      flowVersion: "1",
+      startNodeId: "document", // 👈 MUST MATCH your flow's input node ID
       inputParameters: {
-        document: body.document, // ✅ must match the Flow InputNode ID
+        document: body.document,
       },
     });
 
