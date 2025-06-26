@@ -1,0 +1,103 @@
+Thanks, Vineeth. Now that you’re:
+
+* ✅ Only running the **GitHub flow**
+* ✅ Skipping the prompt (using defaults or inferred versions)
+* ✅ Already getting vulnerability scan results from the **GitHub scanner agent** (in Markdown/report format)
+
+You now want your **`AutoSecure-RefactorAgent`** to:
+
+1. **Read** that Markdown-style report (as shown in your screenshots)
+2. **Fix** all vulnerabilities & deprecated APIs
+3. **Respond** with:
+
+   * ✅ Changes made
+   * ✅ Latest (post-fix) vulnerabilities count (simulated by LLM)
+
+---
+
+## ✅ Refactor Agent Setup (Updated for Markdown input)
+
+---
+
+### 🔹 Agent Name: `AutoSecure-RefactorAgent`
+
+### 🔸 Agent Instruction:
+
+> You are an AI DevSecOps assistant. You will receive a vulnerability report in plain text or Markdown format generated from OWASP Dependency-Check on a GitHub Java repository. Your task is to:
+>
+> 1. Parse the report.
+> 2. Identify all vulnerable dependencies and deprecated Java/Spring APIs.
+> 3. Upgrade the vulnerable libraries to secure versions (use official CVE recommendations, Maven Central, or OSSIndex).
+> 4. Replace or migrate deprecated methods and classes (e.g., `RestTemplate`, `java.util.Date`, `javax.servlet`).
+> 5. Return a Markdown-formatted report that includes:
+>
+>    * Number of vulnerabilities fixed
+>    * List of updated files (e.g., `pom.xml`, `App.java`)
+>    * Summary of changes (library upgrades, code replacements)
+>    * Simulated latest vulnerability count (assume 0 if everything fixed)
+>
+> Make the response clean and easy to read. Focus on realistic remediation steps.
+
+---
+
+### 🔸 Sample Input Format (simulate real test):
+
+```json
+{
+  "scan_report": "## Vulnerability Summary\n\n| High | 5 | Medium | 21 | Low | 12 |\n\n## Top Vulnerable Dependencies\n\nspring-boot-actuator:2.2.2.RELEASE → CVE-2022-22965 → Critical\njavax.servlet.http.HttpServlet → Deprecated\n\n## Deprecated APIs Found\njava.util.Date → use java.time\n..."
+}
+```
+
+You can pass the full Markdown string as a single `scan_report` field.
+
+---
+
+### 🔸 Expected Output Example (from RefactorAgent):
+
+```markdown
+✅ AutoSecure Refactor Summary
+
+🔧 Vulnerabilities Fixed: 5  
+📁 Files Updated: `pom.xml`, `AppConfig.java`, `DateUtil.java`
+
+### 🛠️ Updates Applied:
+- Upgraded `spring-boot-actuator` from `2.2.2.RELEASE` → `2.7.15`
+- Replaced `javax.servlet.http.HttpServlet` with Jakarta equivalents
+- Migrated `java.util.Date` to `java.time.LocalDateTime`
+
+### 🔐 Final Vulnerability Count:
+- High: 0
+- Medium: 0
+- Low: 0
+
+➡️ Project is now compliant with Java 17 and Spring Boot 3.x standards.
+```
+
+---
+
+## ✅ You Can Now Test This Agent With:
+
+### 🔸 Agent Inputs:
+
+```json
+{
+  "scan_report": "## Vulnerability Analysis Results\nGitHub Repository: https://github.com/DataDog/vulnerable-java-application\n\n## Vulnerability Summary\n| High | 5 |\n| Medium | 21 |\n| Low | 12 |\n\n## Top Vulnerable Dependencies\nspring-web:5.2.2.RELEASE (CVE-2021-22118)\ncommons-io:2.6 (CVE-2021-29425)\n\n## Deprecated APIs Found\njavax.servlet.* → Jakarta\njava.util.Date → java.time"
+}
+```
+
+---
+
+## 🧪 Final Tips for Testing
+
+* You **do not need `java_version` or `spring_version`** explicitly — the model can assume Spring Boot 3.x and Java 17+.
+* You can improve results by giving real CVEs in input.
+* This setup **skips the prompt**, so just feed the `scan_report` directly from the GitHub Agent output into the Refactor Agent.
+
+---
+
+Would you like me to:
+
+* Create this **test agent** in Claude format and show you a complete example response?
+* Give you a **helper Lambda** to convert structured OWASP JSON into this Markdown for feeding the refactor agent?
+
+Let me know — I can provide the next asset instantly.
