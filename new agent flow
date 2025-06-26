@@ -1,0 +1,167 @@
+Perfect, Vineeth. Let's now integrate your AutoSecure Agent (Claude or Titan or any Amazon Bedrock Model) into the flow with full intelligence, guiding the user step-by-step while the actual scan/upgrade work is still done via notebook.
+
+This means:
+
+
+---
+
+🧠 Final Flow = Agent + Notebook + Prompts
+
+Block	Type	Role
+
+1	Agent Prompt	AutoSecure AI collects project input intelligently
+2	Prompt Block	Save input.json to S3 (with correct source, mode)
+3	Notebook Run	SageMaker Notebook (scan mode) runs externally
+4	Prompt Block	Show vulnerability summary from before-scan-summary.json
+5	Agent Prompt	Ask user for upgrade targets politely
+6	Notebook Run	Notebook (upgrade mode) runs
+7	Prompt Block	Show results from after-scan-summary.json
+
+
+
+---
+
+✅ Block 1: Agent Prompt — Smart Input Collection
+
+🧩 Type: Agent Prompt Block
+Model: Claude 3.5 Sonnet (or Titan)
+
+👋 Hello! I’m AutoSecure — your AI-powered code security expert.
+
+Let’s get started. Please share your Java project using **any one** of the following:
+
+1. 🔗 A GitHub Repository URL → `{{repo_url}}`
+2. 📦 A ZIP file in S3
+   - Bucket: `{{s3_input_bucket}}`
+   - Key: `{{s3_input_key}}`
+3. ✍️ Pasted inline Java code → `{{inline_java_project}}`
+
+I’ll check your input and confirm it's valid before scanning.
+
+
+---
+
+✅ Block 2: Prompt — Save input.json to S3
+
+📁 Thanks! Saving your input as config:
+
+```json
+{
+  "source": "s3",
+  "repo_url": "{{repo_url}}",
+  "s3_input_bucket": "{{s3_input_bucket}}",
+  "s3_input_key": "{{s3_input_key}}",
+  "inline_java_project": "{{inline_java_project}}",
+  "mode": "scan"
+}
+
+➡️ Please run the SageMaker notebook in scan mode now.
+
+---
+
+## ✅ Manual Notebook Run: Mode = `scan`
+
+Notebook automatically:
+- Downloads project
+- Scans with Snyk
+- Uploads: `before-scan-summary.json`
+
+---
+
+## ✅ Block 3: Prompt — Show Pre-Scan Summary
+
+```markdown
+🔍 I scanned your project. Here’s the result:
+
+| Severity | Count |
+|----------|--------|
+| 🔴 Critical | {{before_critical}} |
+| 🟠 High     | {{before_high}} |
+| 🟡 Medium   | {{before_medium}} |
+| 🟢 Low      | {{before_low}} |
+
+Shall we proceed with upgrading to more secure versions?
+
+
+---
+
+✅ Block 4: Agent Prompt — Ask for Target Versions
+
+To begin the upgrade, please provide the following:
+
+- ☕ Java version you want to upgrade to → `{{target_java_version}}`
+- 🌱 Spring Boot version (e.g., 3.2.0) → `{{target_spring_version}}`
+- 📦 Upgrade all dependencies? (Yes/No) → `{{upgrade_all_dependencies}}`
+
+I’ll use these to refactor and secure your code.
+
+🧠 Here, the agent can even validate:
+
+If the version is valid
+
+If the user typed "maybe" → ask again
+
+If user gives partial info → gently nudge
+
+
+
+---
+
+✅ Manual Notebook Run: Mode = upgrade
+
+Notebook automatically:
+
+Refactors with OpenRewrite
+
+Zips and uploads fixed project
+
+Re-scans
+
+Uploads after-scan-summary.json
+
+
+
+---
+
+✅ Block 5: Prompt — Final Report
+
+✅ Here's your project health report after auto-upgrade:
+
+| Severity | Before | After |
+|----------|--------|--------|
+| 🔴 Critical | {{before_critical}} | {{after_critical}} |
+| 🟠 High     | {{before_high}}     | {{after_high}} |
+| 🟡 Medium   | {{before_medium}}   | {{after_medium}} |
+| 🟢 Low      | {{before_low}}      | {{after_low}} |
+
+📦 Download the upgraded project:
+👉 [autosecure-output/fixed.zip](https://s3.amazonaws.com/account1-env5-s3-bucket-457650192243/autosecure-output/fixed.zip)
+
+
+---
+
+💡 Summary: What You’ve Achieved
+
+✅ Feature	Status
+
+Agent guides user in natural way	✅ Done
+No inline code, no Lambda	✅ Done
+Scan + Upgrade logic in 1 notebook	✅ Done
+Inputs & outputs via S3	✅ Done
+Fully pluggable into Flow	✅ Done
+
+
+
+---
+
+🧪 Optional Enhancements
+
+Would you like:
+
+✅ Automatically poll for notebook result and continue the flow (simulate async)?
+
+✅ React-based frontend to send inputs to S3 + monitor results?
+
+
+Let me know, and I’ll guide next steps accordingly — you’re 99% hackathon ready, Captain AutoSecure 💻🛡️
+
