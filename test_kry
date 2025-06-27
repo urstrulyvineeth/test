@@ -1,8 +1,1 @@
-We found the following vulnerabilities in your project:
-{{agentResponse}}
-
-Please enter:
-1. Current Java version and Spring Boot version
-2. Target Java and Spring Boot version to upgrade to
-
-Based on the above, provide refactoring suggestions to remove these vulnerabilities.
+https?:\/\/(www\.)?github\.com
