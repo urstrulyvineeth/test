@@ -1,0 +1,13 @@
+Rewrite these tests using JUnit 5 and Spring Boot test best practices.
+
+Ensure each test is discoverable and runnable with JUnit 5 (@Test).
+
+Use the right Spring Boot test annotations (@SpringBootTest, @WebMvcTest, @DataJpaTest) depending on what’s being tested.
+
+Add meaningful assertions that validate real service/controller/repository behavior.
+
+Include both positive and negative test cases.
+
+Use Mockito (or @MockBean) to mock external dependencies where needed.
+
+Keep the tests small, isolated, readable, and suitable for CI pipelines.
