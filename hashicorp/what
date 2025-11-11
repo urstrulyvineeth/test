@@ -1,0 +1,17 @@
+🧭 What is HashiCorp?
+
+HashiCorp provides tools that help automate infrastructure operations and manage secrets securely across different environments.
+It focuses on enabling secure access, centralized secret storage, and consistent configuration management across applications and systems.
+
+
+---
+
+💡 Why We Use It at Danske Bank
+
+To securely store and access credentials without embedding secrets in code or config files.
+
+To manage secrets centrally, ensuring only authorized systems and users can access them.
+
+To improve compliance through access auditing and policy-based controls.
+
+To reduce operational risk by automating secret rotation and eliminating manual handling.
