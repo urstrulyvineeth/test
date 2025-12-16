@@ -1,0 +1,298 @@
+HashiCorp Vault – Internal Reference & Implementation Guide
+
+1. Overview
+
+HashiCorp Vault is used in this project as the centralized secrets management solution for microservices.
+It securely stores and controls access to application credentials such as database usernames, passwords, and service configuration values.
+
+This document serves as:
+
+A reference guide when the primary owner is unavailable
+
+An onboarding guide for new team members
+
+A troubleshooting aid to identify configuration issues in Vault or Kubernetes integration
+
+
+> Note:
+This documentation is based on the non-production environment. The same structure and principles apply to production.
+
+
+
+
+---
+
+2. Scope & Assumptions
+
+Environment covered: Non-production
+
+No sensitive values are exposed
+
+Vault setup mirrors production logically
+
+Access is restricted to internal users only
+
+Screenshots are illustrative and may differ slightly across environments
+
+
+
+---
+
+3. Why HashiCorp Vault Is Used
+
+Vault is used to address the following concerns:
+
+Secure Credentials Management
+Secrets are not stored in source code or configuration files.
+
+Centralized Secret Storage
+All secrets are managed in a single controlled system.
+
+Access Control & Auditing
+Access is policy-based and auditable.
+
+Operational Risk Reduction
+Eliminates manual handling of sensitive credentials.
+
+
+
+---
+
+4. High-Level Architecture
+
+Application (Kubernetes Pod)
+        |
+Vault Agent Injector
+        |
+HashiCorp Vault (KV Secrets)
+
+Applications authenticate using machine identities
+
+Secrets are injected into the pod at runtime
+
+No secrets are stored in the application image or Git repository
+
+
+
+---
+
+5. Initial Setup – Step-by-Step
+
+5.1 Create Active Directory (AD) Groups
+
+Create an AD group dedicated to Vault access for the project.
+
+Purpose:
+
+Control access to Vault namespaces
+
+Separate admin and developer responsibilities
+
+
+Ensure:
+
+Required team members are added
+
+Correct functional teams (FTs) are approved
+
+
+
+---
+
+5.2 Create Vault Namespaces
+
+Path: Cloud → Developer → HashiCorp Vault → Namespaces
+
+Namespaces logically separate projects and environments.
+
+Guidelines:
+
+One namespace per project per environment
+
+Naming must follow the agreed convention
+
+Namespaces must exist before creating secrets or roles
+
+
+
+---
+
+5.3 Create KV Secrets
+
+Path: Cloud → Developer → HashiCorp Vault → KV Secrets
+
+KV (Key-Value) is the only secrets engine used
+
+One KV engine per namespace is sufficient
+
+Secrets are grouped logically (e.g., db configs, application credentials)
+
+
+> This is where application secrets are stored.
+
+
+
+
+---
+
+5.4 Create Machine Identities
+
+Path: Cloud → Developer → HashiCorp Vault → Machine Identities
+
+Machine identities represent:
+
+Applications
+
+Servers
+
+Job runners
+
+
+Rules:
+
+Created with read-only permissions
+
+Writing or modifying secrets must be done directly in Vault
+
+One machine identity per project space is recommended
+
+
+
+---
+
+5.5 Create Roles
+
+Path: HashiCorp Vault → Roles / Roles V2
+
+Roles define:
+
+Which machine identity can access which secrets
+
+Scope of access per namespace
+
+
+Important points:
+
+One machine identity can be mapped to multiple roles
+
+Currently, one identity supports multiple availability zones
+
+Roles must match Kubernetes annotations exactly
+
+
+
+---
+
+5.6 Configure Firewall Access
+
+Firewall rules must allow:
+
+Kubernetes clusters to communicate with Vault
+
+Required ports and endpoints for Vault access
+
+
+Misconfigured firewalls are a common root cause of Vault access issues.
+
+
+---
+
+6. Vault Layers and Folder Structure
+
+Vault enforces a layered structure for secret access.
+
+Layering Rules:
+
+Secrets are organized in three logical layers
+
+Application roles can access:
+
+Their own layer
+
+Higher-level shared layers
+
+
+
+Use case:
+
+Shared credentials (e.g., job servers)
+
+Application-specific secrets (e.g., DB users)
+
+
+This structure prevents unauthorized lateral access.
+
+
+---
+
+7. Kubernetes Integration – Code Setup
+
+Add the following annotations to Kubernetes deployment files.
+
+> Important:
+Values such as namespace, role, and secret paths must be updated based on the project.
+
+
+
+annotations:
+  instrumentation.opentelemetry.io/inject-java: "true"
+  vault.hashicorp.com/namespace: <vault-namespace>
+  vault.hashicorp.com/role: <vault-role>
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-secret: vault-root-ca
+  vault.hashicorp.com/ca-cert: /vault/tls/ca.crt
+  vault.hashicorp.com/agent-inject-token: "true"
+  vault.hashicorp.com/agent-inject-secret-env.yaml: <kv-path>/<machine-identity>/db2config
+  vault.hashicorp.com/agent-inject-template-env.yaml: |
+    DB_USERNAME: "{{ with secret "<kv-path>/<machine-identity>/db2config" }}{{ .Data.data.username }}{{ end }}"
+    DB_PW: "{{ with secret "<kv-path>/<machine-identity>/db2config" }}{{ .Data.data.password }}{{ end }}"
+    DB_URL: "{{ with secret "<kv-path>/<machine-identity>/db2config" }}{{ .Data.data.url }}{{ end }}"
+
+Add the following environment variable:
+
+- name: SPRING_CONFIG_ADDITIONALLOCATION
+  value: /vault/secrets/env.yaml
+
+
+---
+
+8. Common Issues & Troubleshooting
+
+Issue	Possible Cause
+
+Secrets not injected	Wrong namespace or role
+Pod startup failure	Vault agent annotation mismatch
+Permission denied	Role not mapped correctly
+Empty env values	Incorrect KV path
+Timeout errors	Firewall or network issue
+
+
+
+---
+
+9. What NOT to Change Without Review
+
+Namespace structure
+
+Role mappings
+
+Secret paths used by applications
+
+Vault agent annotations
+
+
+Unreviewed changes can break multiple services.
+
+
+---
+
+10. Summary
+
+This document provides:
+
+A clear overview of the Vault setup
+
+Step-by-step guidance for new joiners
+
+A reference for troubleshooting during absence
