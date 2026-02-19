@@ -1,0 +1,43 @@
+I am building a Spring Boot application using Spring GraphQL.
+
+Goal:
+Implement distributed trace propagation using a custom annotation and interceptor-based approach.
+
+Requirements:
+
+1. Incoming Request:
+- Read "X-Trace-Id" from the HTTP header.
+- If the header is missing, generate a UUID.
+- Store the traceId in a ThreadLocal context (TraceContext).
+
+2. Custom Annotation:
+- Create @EnableTrace annotation.
+- When applied at controller or method level, it should trigger trace handling logic.
+
+3. GraphQL Controller:
+- Automatically capture the traceId before resolver execution.
+- Make traceId accessible throughout request lifecycle.
+
+4. Internal Microservice Calls:
+- All outgoing REST calls must automatically include the same "X-Trace-Id" header.
+- Use a RestTemplate interceptor (or WebClient filter) to inject the header.
+- Do NOT require manually passing traceId in every method.
+
+5. Response:
+- Add "X-Trace-Id" back into GraphQL HTTP response headers.
+
+6. Constraints:
+- Must be thread-safe.
+- Clear the ThreadLocal after request completes.
+- Use Spring AOP or HandlerInterceptor where appropriate.
+- Avoid memory leaks.
+
+Please generate:
+- TraceContext class
+- Custom annotation
+- AOP or interceptor logic
+- RestTemplate/WebClient interceptor
+- GraphQL response header handling
+- Proper configuration classes
+
+Provide production-ready code.
