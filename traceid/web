@@ -1,0 +1,33 @@
+// ============================
+// WebConfig.java
+// ============================
+package com.example.trace;
+
+import org.springframework.context.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.config.annotation.*;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    private final TraceIncomingInterceptor incomingInterceptor;
+    private final TraceOutgoingInterceptor outgoingInterceptor;
+
+    public WebConfig(TraceIncomingInterceptor incomingInterceptor,
+                     TraceOutgoingInterceptor outgoingInterceptor) {
+        this.incomingInterceptor = incomingInterceptor;
+        this.outgoingInterceptor = outgoingInterceptor;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(incomingInterceptor);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getInterceptors().add(outgoingInterceptor);
+        return restTemplate;
+    }
+}
