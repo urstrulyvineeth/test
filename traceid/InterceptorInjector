@@ -1,0 +1,21 @@
+@Component
+public class RestTemplateInterceptorInjector {
+
+    private final List<RestTemplate> restTemplates;
+    private final TraceOutgoingInterceptor interceptor;
+
+    public RestTemplateInterceptorInjector(
+            List<RestTemplate> restTemplates,
+            TraceOutgoingInterceptor interceptor) {
+
+        this.restTemplates = restTemplates;
+        this.interceptor = interceptor;
+    }
+
+    @PostConstruct
+    public void inject() {
+        for (RestTemplate rt : restTemplates) {
+            rt.getInterceptors().add(interceptor);
+        }
+    }
+}
