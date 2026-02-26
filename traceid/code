@@ -1,0 +1,33 @@
+// ============================
+// TraceContext.java
+// ============================
+package com.example.trace;
+
+public final class TraceContext {
+
+    private static final ThreadLocal<String> TRACE_ID = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> TRACE_SET =
+            ThreadLocal.withInitial(() -> false);
+
+    private TraceContext() {}
+
+    public static void setTraceId(String traceId) {
+        TRACE_ID.set(traceId);
+        TRACE_SET.set(true);
+    }
+
+    public static String getTraceId() {
+        return TRACE_ID.get();
+    }
+
+    public static boolean isTraceSet() {
+        return TRACE_SET.get();
+    }
+
+    public static void clear() {
+        TRACE_ID.remove();
+        TRACE_SET.remove();
+    }
+}
+
+
