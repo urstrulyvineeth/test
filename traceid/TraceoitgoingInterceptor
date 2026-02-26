@@ -1,0 +1,29 @@
+// ============================
+// TraceOutgoingInterceptor.java
+// ============================
+package com.example.trace;
+
+import org.springframework.http.*;
+import org.springframework.http.client.*;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+@Component
+public class TraceOutgoingInterceptor implements ClientHttpRequestInterceptor {
+
+    private static final String TRACE_HEADER = "traceId";
+
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request,
+                                        byte[] body,
+                                        ClientHttpRequestExecution execution)
+            throws IOException {
+
+        if (TraceContext.isTraceSet()) {
+            request.getHeaders().add(TRACE_HEADER, TraceContext.getTraceId());
+        }
+
+        return execution.execute(request, body);
+    }
+}
