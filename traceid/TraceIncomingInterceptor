@@ -1,0 +1,37 @@
+// ============================
+// TraceIncomingInterceptor.java
+// ============================
+package com.example.trace;
+
+import jakarta.servlet.http.*;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+@Component
+public class TraceIncomingInterceptor implements HandlerInterceptor {
+
+    private static final String TRACE_HEADER = "traceId";
+
+    @Override
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) {
+
+        String traceId = request.getHeader(TRACE_HEADER);
+
+        if (traceId != null && !traceId.isBlank()) {
+            TraceContext.setTraceId(traceId);
+        }
+
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request,
+                                HttpServletResponse response,
+                                Object handler,
+                                Exception ex) {
+
+        TraceContext.clear();
+    }
+}
