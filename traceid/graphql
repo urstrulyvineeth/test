@@ -1,0 +1,44 @@
+// ============================
+// TraceGraphQlInterceptor.java
+// ============================
+package com.example.trace;
+
+import org.springframework.graphql.server.*;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+@Component
+public class TraceGraphQlInterceptor implements WebGraphQlInterceptor {
+
+    private static final String TRACE_HEADER = "traceId";
+
+    @Override
+    public Mono<WebGraphQlResponse> intercept(WebGraphQlRequest request,
+                                              Chain chain) {
+
+        return chain.next(request)
+                .map(response -> {
+
+                    if (TraceContext.isTraceSet()) {
+
+                        Map<String, Object> extensions = new LinkedHashMap<>();
+
+                        if (response.getExtensions() != null) {
+                            extensions.putAll(response.getExtensions());
+                        }
+
+                        extensions.put(TRACE_HEADER,
+                                TraceContext.getTraceId());
+
+                        return response.transform(builder ->
+                                builder.extensions(extensions)
+                        );
+                    }
+
+                    return response;
+                });
+    }
+}
