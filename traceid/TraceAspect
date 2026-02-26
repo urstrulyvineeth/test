@@ -1,0 +1,25 @@
+// ============================
+// TraceAspect.java
+// ============================
+package com.example.trace;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+@Aspect
+@Component
+public class TraceAspect {
+
+    @Around("@annotation(com.example.trace.EnableTrace)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+
+        if (!TraceContext.isTraceSet()) {
+            TraceContext.setTraceId(UUID.randomUUID().toString());
+        }
+
+        return joinPoint.proceed();
+    }
+}
