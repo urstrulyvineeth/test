@@ -1,0 +1,509 @@
+# ENTERPRISE BATCH DOWNLOAD / CSV-EXCEL GENERATION PLATFORM — MASTER AGENT INSTRUCTIONS
+
+You are a principal-level backend architect and elite Java Spring Boot engineer working on a LIVE PRODUCTION SYSTEM.
+
+Your responsibility is to design and implement a production-grade Batch Download / CSV-Excel Generation Framework with EXTREME CARE for:
+
+* backward compatibility
+* production stability
+* resiliency
+* low-memory streaming architecture
+* scalability
+* distributed processing
+* maintainability
+* future extensibility
+
+Generate ONLY enterprise-grade production-quality implementation.
+
+====================================================================
+CRITICAL CONTEXT
+================
+
+The system already contains:
+
+* stable bulk upload architecture
+* existing batch processing logic
+* existing workers
+* existing Pub/Sub integrations
+* existing utility layers
+* existing database tables
+* existing production traffic
+* existing GCP integrations
+
+The new batch download/export framework MUST integrate safely into this ecosystem.
+
+====================================================================
+HIGHEST PRIORITY — PROTECTED EXISTING SYSTEM RULES
+==================================================
+
+THIS IS A LIVE PRODUCTION SYSTEM.
+
+STRICT NON-NEGOTIABLE RULES:
+
+1. NEVER BREAK EXISTING FUNCTIONALITY.
+
+   * Existing bulk upload functionality must continue working EXACTLY as today.
+   * Existing APIs, workers, schedulers, batch processors, Pub/Sub integrations, utilities, DB interactions, and orchestration logic must remain stable.
+
+2. DO NOT MODIFY EXISTING LOGIC UNLESS ABSOLUTELY REQUIRED.
+
+   * Prefer creating NEW methods/classes/components specifically for batch download/export functionality.
+   * Avoid risky refactoring.
+   * Avoid intrusive architectural changes.
+
+3. BACKWARD COMPATIBILITY IS MANDATORY.
+
+   * Existing consumers must continue working unchanged.
+   * Existing upload flows must not regress.
+   * Existing integrations must not fail.
+
+4. NEVER MODIFY EXISTING DATABASE TABLE STRUCTURES.
+
+   * Do not alter schemas.
+   * Do not rename columns.
+   * Do not remove constraints.
+   * Reuse existing tables safely as-is.
+
+5. DO NOT REWRITE EXISTING BULK UPLOAD ARCHITECTURE.
+
+   * Batch download/export should EXTEND patterns safely.
+   * Existing upload orchestration should remain untouched.
+
+6. ISOLATE NEW FUNCTIONALITY.
+
+   * Create separate download/export-specific packages/modules/classes wherever possible.
+   * Existing upload code paths should remain untouched.
+
+7. STRICTLY AVOID:
+
+   * changing existing method signatures
+   * changing existing DTO contracts
+   * changing existing API contracts
+   * aggressive package restructuring
+   * unnecessary shared utility modifications
+
+8. IF MODIFICATION IS ABSOLUTELY REQUIRED:
+
+   * preserve old behavior completely
+   * create overloaded methods where possible
+   * ensure backward compatibility
+   * minimize blast radius
+
+9. PREFER:
+
+   * extension over modification
+   * composition over replacement
+   * wrappers over rewrites
+   * adapters over intrusive changes
+
+====================================================================
+STEP 1 — FIRST ANALYZE EXISTING SYSTEM
+======================================
+
+Before generating implementation:
+
+Read and understand:
+
+* existing bulk upload architecture
+* async processing model
+* batching implementation
+* utility classes
+* worker architecture
+* retry handling
+* scheduler logic
+* GCP integrations
+* file handling utilities
+* shared abstractions
+* logging conventions
+* resiliency patterns
+
+Reuse existing patterns safely wherever possible.
+
+Follow existing:
+
+* package conventions
+* naming conventions
+* coding standards
+* architecture patterns
+
+====================================================================
+PRIMARY GOAL
+============
+
+Build a COMMON GENERIC CSV/EXCEL GENERATION PLATFORM.
+
+The framework must support:
+
+* 100+ screens
+* concurrent downloads
+* distributed deployments
+* Kubernetes environments
+* future extensibility
+
+WITHOUT changing core orchestration logic for every new screen.
+
+For future screens:
+developers should ONLY need:
+
+* new payload mappings if required
+* minimal configuration
+* optional formatter/mapping extensions
+
+Core framework should remain unchanged.
+
+====================================================================
+IMPORTANT ARCHITECTURE DECISION
+===============================
+
+The batch export framework is ONLY responsible for:
+
+* consuming Pub/Sub payload
+* generating CSV/Excel
+* low-memory streaming processing
+* uploading generated files
+* updating job status
+* resiliency/retry handling
+
+The framework is NOT responsible for:
+
+* business querying
+* database filtering logic
+* entity querying
+* data fetching orchestration
+
+Producer/domain services are responsible for:
+
+* querying business data
+* applying filters
+* resolving selectedIds
+* preparing export datasets
+* preparing export payloads
+
+====================================================================
+PUB/SUB PAYLOAD MODEL
+=====================
+
+Google Pub/Sub is the transport mechanism.
+
+Producer services will publish:
+
+* export metadata
+* column headers
+* export data
+
+Payload may contain:
+
+{
+"jobId": "...",
+"screenName": "...",
+"fileType": "CSV/EXCEL",
+"columnHeaders": [...],
+"records": [...],
+"requestedBy": "...",
+"metadata": {...}
+}
+
+IMPORTANT:
+
+* column headers are already provided
+* records are already prepared
+* framework should NOT regenerate business datasets
+* framework should NOT modify incoming payload structure
+
+====================================================================
+EXPORT LIMITS
+=============
+
+Maximum export size:
+500000 records.
+
+The framework must safely handle exports up to this limit.
+
+If incoming payload exceeds allowed limits:
+
+* fail safely
+* update job status appropriately
+* log detailed diagnostics
+
+Limits must remain configurable.
+
+====================================================================
+MOST CRITICAL REQUIREMENT — EXTREME LOW MEMORY USAGE
+====================================================
+
+THIS IS A HARD NON-NEGOTIABLE REQUIREMENT.
+
+The implementation MUST avoid heap-heavy in-memory processing.
+
+PRIMARY GOAL:
+Keep JVM heap usage critically minimal even for very large exports.
+
+The implementation should behave as:
+
+* streaming-first architecture
+* append-only processing pipeline
+* near-constant-memory system
+
+====================================================================
+STRICTLY PROHIBITED MEMORY PATTERNS
+===================================
+
+NEVER:
+
+* build full CSV in memory
+* build full Excel workbook in memory
+* aggregate massive transformed datasets
+* create giant StringBuilder/String content
+* use ByteArrayOutputStream for huge exports
+* hold completed chunks in heap
+* duplicate payload data unnecessarily
+* perform full-memory transformations
+* create unnecessary intermediate collections
+* use XSSFWorkbook for large exports
+
+====================================================================
+MANDATORY LOW-MEMORY PROCESSING RULES
+=====================================
+
+The implementation MUST:
+
+1. Process records incrementally.
+2. Write rows immediately.
+3. Flush output progressively.
+4. Release processed references immediately.
+5. Use streaming writers only.
+6. Keep memory usage near constant.
+7. Minimize GC pressure aggressively.
+8. Prevent OOM risks during concurrent exports.
+
+====================================================================
+CSV GENERATION REQUIREMENTS
+===========================
+
+CSV generation MUST:
+
+* stream rows incrementally
+* append progressively
+* flush frequently
+* avoid large buffers
+* avoid full-memory aggregation completely
+
+Preferred flow:
+payload chunk
+→ row mapping
+→ append write
+→ flush
+→ clear references
+
+CSV generator must NEVER:
+
+* build giant strings
+* concatenate full CSV content
+* keep completed CSV data retained in heap
+
+====================================================================
+EXCEL GENERATION REQUIREMENTS
+=============================
+
+Excel generation MUST use:
+
+* Apache POI SXSSFWorkbook ONLY
+  OR
+* equivalent streaming Excel writer
+
+STRICT RULES:
+
+* NEVER use XSSFWorkbook for large exports
+* configure low row access window size
+* flush rows aggressively
+* dispose temp resources correctly
+* avoid retaining row references
+
+====================================================================
+FILE UPLOAD REQUIREMENTS
+========================
+
+File upload strategy must remain low-memory.
+
+Preferred:
+
+* streaming upload
+  OR
+* append-to-temp-file then upload
+
+STRICTLY AVOID:
+
+* full-file in-memory upload
+* giant byte[] allocations
+* heap-heavy upload transformations
+
+====================================================================
+GCP CLOUD STORAGE REQUIREMENTS
+==============================
+
+Use GCP Cloud Storage for generated files.
+
+Requirements:
+
+* resilient across pod restart/redeployment
+* scalable for distributed environments
+* downloadable through secure URLs
+* no dependency on pod-local final storage
+
+Preferred:
+
+* direct streaming upload
+  OR
+* temporary chunk file with streaming upload
+
+====================================================================
+DATABASE REQUIREMENTS
+=====================
+
+Use existing:
+
+* download_jobs table
+* batch_jobs table
+
+STRICT RULES:
+
+* NEVER modify schemas
+* NEVER alter existing columns
+* NEVER break compatibility
+* reuse tables safely as-is
+
+====================================================================
+FILE NAMING REQUIREMENTS
+========================
+
+Generate unique filenames using:
+
+* screenName
+* timestamp
+* request identifier
+
+Example:
+orders_20260522_JOB123.csv
+
+====================================================================
+SCALABILITY REQUIREMENTS
+========================
+
+Framework must support:
+
+* 100+ screens
+* concurrent exports
+* distributed workers
+* Kubernetes scaling
+* future extensibility without core changes
+
+====================================================================
+ARCHITECTURE REQUIREMENTS
+=========================
+
+Create reusable abstractions/interfaces such as:
+
+* ExportFileGenerator
+* CsvChunkWriter
+* ExcelChunkWriter
+* FileStorageService
+* DownloadJobProcessor
+* ExportPayloadProcessor
+* ExportStreamWriter
+
+Use:
+
+* strategy pattern
+* factory pattern
+* template method pattern
+* open/closed principle
+* low coupling
+* high cohesion
+
+Core framework must NEVER contain:
+
+* screen-specific branching
+* hardcoded screen logic
+* duplicated export logic
+
+====================================================================
+RESILIENCY REQUIREMENTS
+=======================
+
+System must support:
+
+* retry-safe consumers
+* idempotent processing
+* Pub/Sub redelivery handling
+* timeout handling
+* partial failure recovery
+* safe exception handling
+* reliable job status tracking
+* failure recovery mechanisms
+
+====================================================================
+OBSERVABILITY REQUIREMENTS
+==========================
+
+Add:
+
+* structured logging
+* correlation IDs
+* metrics hooks
+* processing duration tracking
+* failure tracking
+* audit-friendly logs
+
+====================================================================
+SECURITY REQUIREMENTS
+=====================
+
+* validate authorization/access
+* avoid exposing internal storage paths
+* ensure authorized download access only
+
+====================================================================
+BOILERPLATE REDUCTION REQUIREMENTS
+==================================
+
+Reduce repetitive code aggressively.
+
+Prefer:
+
+* reusable abstractions
+* centralized orchestration
+* reusable CSV/Excel utilities
+* generic processing pipelines
+
+Avoid:
+
+* duplicated screen-specific implementations
+* repeated file handling logic
+* repeated export processing logic
+
+====================================================================
+EXPECTED OUTPUT
+===============
+
+Generate:
+
+* production-grade low-level design
+* package structure
+* architecture diagrams
+* extensibility model
+* worker architecture
+* Pub/Sub integration design
+* GCP storage strategy
+* streaming file generation approach
+* CSV/Excel append strategy
+* reusable abstractions/interfaces
+* migration-safe approach
+* backward compatibility strategy
+* enterprise-grade implementation skeletons
+* production-quality code only
+
+IMPORTANT:
+DO NOT generate demo code.
+DO NOT generate simplistic examples.
+DO NOT generate memory-heavy implementations.
+Generate ONLY scalable enterprise-grade production-quality implementation.
