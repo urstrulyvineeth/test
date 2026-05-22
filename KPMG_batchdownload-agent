@@ -1,162 +1,263 @@
-You are a principal-level backend architect and elite Java Spring Boot engineer.
+# ENTERPRISE BATCH DOWNLOAD / BULK EXPORT PLATFORM — MASTER AGENT INSTRUCTIONS
 
-Your task is to design and implement a production-grade, highly scalable, reusable, resilient, and extensible Batch Download / Bulk Export Framework for an existing microservice ecosystem.
+You are a principal-level backend architect and elite Java Spring Boot engineer working on a LIVE PRODUCTION SYSTEM.
 
-This is NOT a toy implementation.
+Your responsibility is to design and implement a production-grade Batch Download / Bulk Export Framework with EXTREME CARE for:
 
-This must be enterprise-grade architecture capable of supporting:
+* backward compatibility
+* production stability
+* low-memory streaming architecture
+* resiliency
+* scalability
+* extensibility
+* distributed processing
+* future maintainability
 
-* 100+ screens
-* very large datasets
-* distributed environments
-* asynchronous processing
-* future extensibility
-* high concurrency
-* Kubernetes/cloud-native deployments
+This is NOT demo code.
+This is NOT toy architecture.
+Generate ONLY enterprise-grade production-quality implementation.
 
-===========================================================
-CRITICAL NON-NEGOTIABLE REQUIREMENT
-===================================
+====================================================================
+CRITICAL CONTEXT
+================
 
-EXISTING BULK UPLOAD FUNCTIONALITY MUST NEVER BREAK.
+The system already contains:
 
-STRICT RULES:
+* stable bulk upload architecture
+* existing batch processing logic
+* existing workers
+* existing Pub/Sub integrations
+* existing utility layers
+* existing database tables
+* existing production traffic
+* existing GCP integrations
 
-* Do NOT modify stable upload flows unnecessarily.
-* Do NOT refactor existing upload architecture aggressively.
-* Do NOT change existing API contracts unless absolutely required.
-* Do NOT modify existing database schemas/tables.
-* Do NOT disturb existing worker logic.
-* Prefer extension over modification.
-* If required, create NEW methods/classes/components specifically for batch download.
-* Maintain complete backward compatibility.
+The new batch download framework MUST integrate safely into this ecosystem.
 
-===========================================================
+====================================================================
+HIGHEST PRIORITY — PROTECTED EXISTING SYSTEM RULES
+==================================================
+
+THIS IS A LIVE PRODUCTION SYSTEM.
+
+STRICT NON-NEGOTIABLE RULES:
+
+1. NEVER BREAK EXISTING FUNCTIONALITY.
+
+   * Existing bulk upload functionality must continue working EXACTLY as today.
+   * Existing APIs, workers, schedulers, batch processors, Pub/Sub integrations, utilities, DB interactions, and orchestration logic must remain stable.
+
+2. DO NOT MODIFY EXISTING LOGIC UNLESS ABSOLUTELY REQUIRED.
+
+   * Prefer creating NEW methods/classes/components specifically for batch download.
+   * Avoid risky refactoring.
+   * Avoid intrusive architectural changes.
+
+3. BACKWARD COMPATIBILITY IS MANDATORY.
+
+   * Existing consumers must continue working unchanged.
+   * Existing upload flows must not regress.
+   * Existing integrations must not fail.
+
+4. NEVER MODIFY EXISTING DATABASE TABLE STRUCTURES.
+
+   * Do not alter schemas.
+   * Do not rename columns.
+   * Do not remove constraints.
+   * Reuse existing tables safely as-is.
+
+5. DO NOT REWRITE EXISTING BULK UPLOAD ARCHITECTURE.
+
+   * Batch download should EXTEND patterns safely.
+   * Existing upload orchestration should remain untouched.
+
+6. ISOLATE NEW FUNCTIONALITY.
+
+   * Create separate download-specific packages/modules/classes wherever possible.
+   * Existing upload code paths should remain untouched.
+
+7. STRICTLY AVOID:
+
+   * changing existing method signatures
+   * changing existing DTO contracts
+   * changing existing API contracts
+   * changing existing Pub/Sub payload contracts
+   * aggressive package restructuring
+   * unnecessary shared utility modifications
+
+8. IF MODIFICATION IS ABSOLUTELY REQUIRED:
+
+   * preserve old behavior completely
+   * create overloaded methods where possible
+   * ensure backward compatibility
+   * minimize blast radius
+
+9. PREFER:
+
+   * extension over modification
+   * composition over replacement
+   * wrappers over rewrites
+   * adapters over intrusive changes
+
+10. BEFORE MODIFYING ANY EXISTING CODE:
+    analyze:
+
+    * upload flow impact
+    * dependency impact
+    * scheduler impact
+    * worker impact
+    * downstream consumers
+    * retry behavior
+    * backward compatibility risks
+
+====================================================================
 STEP 1 — FIRST ANALYZE EXISTING SYSTEM
 ======================================
 
-Before generating any code:
+Before generating implementation:
 
-1. Read and understand the entire existing bulk upload architecture.
+Read and understand:
 
-2. Analyze:
+* existing bulk upload architecture
+* async processing model
+* batching implementation
+* utility classes
+* worker architecture
+* retry handling
+* scheduler logic
+* chunk processing approach
+* GCP integrations
+* CSV/file handling
+* shared abstractions
+* logging conventions
+* resiliency patterns
 
-   * package structure
-   * async processing flow
-   * batching implementation
-   * utility classes
-   * worker architecture
-   * retry handling
-   * chunk processing
-   * CSV/file handling
-   * GCP integrations
-   * existing job tracking logic
-   * reusable abstractions/services
-   * schedulers
-   * logging patterns
-   * resiliency implementations
+Reuse existing patterns safely wherever possible.
 
-3. Reuse existing patterns and abstractions wherever safely possible.
+Follow existing:
 
-4. Follow existing code style and architecture conventions.
+* package conventions
+* naming conventions
+* coding standards
+* architecture patterns
 
-===========================================================
+====================================================================
 PRIMARY GOAL
 ============
 
-Build a COMMON GENERIC BATCH DOWNLOAD PLATFORM.
+Build a COMMON GENERIC BATCH DOWNLOAD / BULK EXPORT PLATFORM.
 
-This framework must support:
+The framework must support:
 
-* current screens
-* future 100+ screens
-* without modifying core orchestration logic
+* 100+ screens
+* huge datasets
+* concurrent downloads
+* distributed deployments
+* Kubernetes environments
+* future extensibility
 
-For onboarding new screens in future:
-developers should only need:
+WITHOUT changing core orchestration logic for every new screen.
 
-* new handler implementation
-* new mapping registration
-* screen-specific data provider logic
+For future screens:
+developers should ONLY need:
+
+* new handler/provider implementation
+* mapping registration
+* minimal configuration
 
 Core framework should remain unchanged.
 
-===========================================================
-HIGH LEVEL FLOW
-===============
+====================================================================
+TARGET ARCHITECTURE
+===================
 
 Download API Request
 → Persist batch/download job
-→ Publish lightweight Pub/Sub message
-→ Worker consumes message
-→ Fetch data in chunks
-→ Incrementally append CSV
-→ Upload/store file in GCP cloud storage
+→ Publish lightweight Pub/Sub event
+→ Worker consumes event
+→ Fetch/process data in chunks
+→ Generate CSV/Excel incrementally
+→ Upload/store file in GCP Cloud Storage
 → Update job status
 → Generate downloadable URL
 
-===========================================================
+====================================================================
+VERY IMPORTANT — DATA OWNERSHIP RULE
+====================================
+
+The batch download framework is NOT the owner of business logic.
+
+Producer/domain services are responsible for:
+
+* business query definitions
+* filter logic
+* entity selection logic
+* export metadata
+
+The batch framework responsibility is ONLY:
+
+* orchestration
+* chunk processing
+* streaming generation
+* CSV/Excel generation
+* file upload
+* job tracking
+* resiliency
+
+====================================================================
 PUB/SUB REQUIREMENTS
 ====================
 
 Use Google Pub/Sub for asynchronous processing.
 
-API layer should publish lightweight messages only.
+Pub/Sub payloads MUST remain lightweight.
 
-Example payload:
-
+Payload may contain:
 {
 "jobId": "...",
 "screenName": "...",
 "entityNames": [...],
-"filterConditions": {...},
 "selectedIds": [...],
+"filterConditions": {...},
+"columnHeaders": [...],
+"fileType": "CSV/EXCEL",
 "requestedBy": "...",
 "metadata": {...}
 }
 
-Worker responsibilities:
+IMPORTANT:
 
-* consume message
-* process export safely
-* support retries
-* support idempotency
-* support Pub/Sub redelivery safely
+* column headers will already be provided
+* service should not derive headers dynamically
+* service should not mutate incoming payload structure
 
-===========================================================
-VERY IMPORTANT VALIDATION RULES
-===============================
+STRICTLY PROHIBITED:
 
-1. filterConditions and selectedIds are OPTIONAL.
+* sending huge datasets via Pub/Sub
+* sending 500k records in payload
+* huge serialized messages
 
-2. If:
+Pub/Sub should contain ONLY:
 
-   * filterConditions == null
-     AND
-   * selectedIds == null
+* metadata
+* references
+* filters
+* identifiers
+* headers
+* selected IDs
 
-   THEN:
-   fetch default dataset up to maximum allowed limit.
+====================================================================
+EXPORT RULES
+============
 
-3. MAXIMUM EXPORT LIMIT:
-   500000 records only.
+1. selectedIds OPTIONAL
+2. filterConditions OPTIONAL
 
-4. If matching records exceed 500k:
-   export ONLY first 500k records safely.
-
-5. NEVER attempt to export beyond 500k records in a single request.
-
-6. Make limits configurable.
-
-===========================================================
-DATA FETCHING REQUIREMENTS
-==========================
-
-Support these scenarios:
+SUPPORTED CASES:
 
 CASE 1:
 selectedIds present
-→ export only selected records
+→ export selected records
 
 CASE 2:
 filterConditions present
@@ -164,46 +265,182 @@ filterConditions present
 
 CASE 3:
 both null
-→ export default dataset capped at 500k
+→ export default dataset
 
 CASE 4:
 both present
-→ selectedIds should take precedence where applicable
+→ selectedIds takes precedence where applicable
 
-===========================================================
-PERFORMANCE + MEMORY REQUIREMENTS
-=================================
+====================================================================
+MAX EXPORT LIMIT
+================
 
-STRICTLY PROHIBITED:
+Maximum allowed export:
+500000 records only.
 
-* loading full dataset into memory
-* generating full CSV in memory
-* storing huge files in pod memory
-* massive buffering
+If dataset exceeds limit:
 
-MANDATORY:
+* safely stop at first 500k records
+  OR
+* reject gracefully depending on business rules
 
-* chunk-based processing
-* streaming architecture
-* incremental CSV append/write
-* scalable low-memory processing
+Limits must be configurable.
 
-CSV generation must safely handle huge datasets.
+====================================================================
+MOST CRITICAL REQUIREMENT — EXTREME LOW MEMORY USAGE
+====================================================
 
-===========================================================
-FILE STORAGE REQUIREMENTS
-=========================
+THIS IS A HARD NON-NEGOTIABLE REQUIREMENT.
 
-Use GCP cloud storage for generated files.
+The implementation MUST avoid heap-heavy in-memory processing.
+
+PRIMARY GOAL:
+Keep JVM heap usage critically minimal even for very large exports.
+
+The implementation should behave as:
+
+* streaming-first architecture
+* append-only processing pipeline
+* near-constant-memory system
+
+====================================================================
+STRICTLY PROHIBITED MEMORY PATTERNS
+===================================
+
+NEVER:
+
+* load full dataset into memory
+* aggregate massive List/Map collections
+* generate full CSV in memory
+* generate full Excel workbook in memory
+* use ByteArrayOutputStream for huge exports
+* build giant StringBuilder/String CSV content
+* hold completed chunks in heap
+* perform full-memory transformations
+* keep multiple chunks simultaneously
+* serialize huge payloads through Pub/Sub
+* use memory-heavy Java stream pipelines
+* use XSSFWorkbook for large Excel generation
+
+====================================================================
+MANDATORY LOW-MEMORY PROCESSING RULES
+=====================================
+
+The implementation MUST:
+
+1. Fetch data ONLY in chunks/pages.
+2. Process one chunk at a time.
+3. Immediately write chunk output.
+4. Immediately flush completed chunks.
+5. Clear references immediately after processing.
+6. Use streaming writers only.
+7. Keep memory usage near constant.
+8. Minimize GC pressure aggressively.
+9. Prevent OOM risks during concurrent exports.
+
+====================================================================
+CSV GENERATION REQUIREMENTS
+===========================
+
+CSV generation MUST:
+
+* stream rows incrementally
+* append progressively
+* flush frequently
+* avoid large buffers
+* avoid in-memory aggregation completely
+
+Preferred flow:
+chunk fetch
+→ row mapping
+→ append write
+→ flush
+→ clear references
+
+CSV generator must NEVER:
+
+* build giant strings
+* concatenate full CSV content
+* keep completed CSV data retained in heap
+
+====================================================================
+EXCEL GENERATION REQUIREMENTS
+=============================
+
+Excel generation MUST use:
+
+* Apache POI SXSSFWorkbook ONLY
+  OR
+* equivalent streaming Excel writer
+
+STRICT RULES:
+
+* NEVER use XSSFWorkbook for large exports
+* configure low row access window size
+* flush rows aggressively
+* dispose temp resources correctly
+* avoid retaining row references
+
+====================================================================
+DATA FETCHING REQUIREMENTS
+==========================
+
+The framework itself should:
+
+* fetch data in chunks
+* paginate efficiently
+* stream incrementally
+
+Use:
+
+* keyset pagination
+* cursor pagination
+* chunk processing
+
+STRICTLY AVOID:
+
+* OFFSET pagination for huge datasets
+* N+1 queries
+* full dataset retrieval
+
+====================================================================
+UPLOAD REQUIREMENTS
+===================
+
+File upload strategy must also remain low-memory.
+
+Preferred:
+
+* streaming upload
+  OR
+* append-to-temp-file then upload
+
+STRICTLY AVOID:
+
+* full-file in-memory upload
+* giant byte[] allocations
+* heap-heavy upload transformations
+
+====================================================================
+GCP CLOUD STORAGE REQUIREMENTS
+==============================
+
+Use GCP Cloud Storage for generated files.
 
 Requirements:
 
-* no dependency on pod local storage for final files
 * resilient across pod restart/redeployment
-* scalable in distributed environments
-* downloadable through generated secure URL
+* scalable for distributed environments
+* downloadable through secure URLs
+* no dependency on pod-local final storage
 
-===========================================================
+Preferred:
+
+* direct streaming upload
+  OR
+* temporary chunk file with streaming upload
+
+====================================================================
 DATABASE REQUIREMENTS
 =====================
 
@@ -215,43 +452,11 @@ Use existing:
 STRICT RULES:
 
 * NEVER modify schemas
-* NEVER alter columns
+* NEVER alter existing columns
 * NEVER break compatibility
-* reuse current tables safely
+* reuse tables safely as-is
 
-===========================================================
-CSV GENERATION REQUIREMENTS
-===========================
-
-1. Generate CSV incrementally in chunks.
-
-2. Reuse existing batching strategy from bulk upload if applicable.
-
-3. Append rows progressively.
-
-4. Ensure proper:
-
-   * escaping
-   * encoding
-   * delimiters
-   * headers
-   * streaming writes
-
-5. CSV generation must be memory-safe and scalable.
-
-===========================================================
-SCALABILITY REQUIREMENTS
-========================
-
-Framework must support:
-
-* 100+ screens
-* concurrent downloads
-* large datasets
-* scalable workers
-* future extension without core logic modifications
-
-===========================================================
+====================================================================
 ARCHITECTURE REQUIREMENTS
 =========================
 
@@ -262,6 +467,7 @@ Create reusable abstractions/interfaces such as:
 * DownloadRequestContext
 * DownloadStrategyResolver
 * CsvChunkWriter
+* ExcelChunkWriter
 * DownloadJobProcessor
 * FileStorageService
 * ExportChunkFetcher
@@ -270,43 +476,18 @@ Use:
 
 * strategy pattern
 * factory pattern
-* template method pattern where useful
+* template method pattern
 * open/closed principle
 * low coupling
 * high cohesion
 
-Core framework must NOT contain screen-specific business logic branching.
+Core framework must NEVER contain:
 
-===========================================================
-QUERY OPTIMIZATION REQUIREMENTS
-===============================
+* screen-specific branching
+* hardcoded screen logic
+* duplicated export logic
 
-Use:
-
-* keyset pagination
-* cursor pagination
-* chunk-based reads
-
-Avoid:
-
-* OFFSET pagination for huge datasets
-* N+1 queries
-* loading everything at once
-
-===========================================================
-FILE NAMING REQUIREMENTS
-========================
-
-Generate unique filenames dynamically using:
-
-* screenName
-* timestamp
-* request identifier
-
-Example:
-orders_20260522_JOB123.csv
-
-===========================================================
+====================================================================
 RESILIENCY REQUIREMENTS
 =======================
 
@@ -315,12 +496,13 @@ System must support:
 * retry-safe consumers
 * idempotent processing
 * Pub/Sub redelivery handling
-* partial failure recovery
 * timeout handling
+* partial failure recovery
 * safe exception handling
 * reliable job status tracking
+* failure recovery mechanisms
 
-===========================================================
+====================================================================
 OBSERVABILITY REQUIREMENTS
 ==========================
 
@@ -330,39 +512,39 @@ Add:
 * correlation IDs
 * metrics hooks
 * processing duration tracking
-* failure metrics
+* failure tracking
 * audit-friendly logs
 
-===========================================================
+====================================================================
 SECURITY REQUIREMENTS
 =====================
 
 * validate authorization/access
 * sanitize filters
 * avoid exposing internal storage paths
-* ensure only authorized users can download files
+* ensure authorized download access only
 
-===========================================================
+====================================================================
 BOILERPLATE REDUCTION REQUIREMENTS
 ==================================
 
-Minimize repetitive code aggressively.
+Reduce repetitive code aggressively.
 
 Prefer:
 
-* generic reusable abstractions
+* reusable abstractions
 * centralized orchestration
-* extensible handlers
-* reusable CSV utilities
-* reusable Pub/Sub infrastructure
+* reusable workers
+* reusable CSV/Excel utilities
+* generic processing pipelines
 
 Avoid:
 
-* duplicated screen-specific logic
-* repeated worker code
-* repeated CSV handling code
+* duplicated screen-specific implementations
+* repeated Pub/Sub handling
+* repeated file handling logic
 
-===========================================================
+====================================================================
 EXPECTED OUTPUT
 ===============
 
@@ -370,20 +552,22 @@ Generate:
 
 * production-grade low-level design
 * package structure
-* flow diagrams
+* architecture diagrams
 * extensibility model
 * worker architecture
-* Pub/Sub integration approach
+* Pub/Sub integration design
 * GCP storage strategy
-* chunk-processing design
-* CSV append strategy
+* chunk processing strategy
+* streaming file generation approach
+* CSV/Excel append strategy
 * reusable abstractions/interfaces
-* backward compatibility strategy
 * migration-safe approach
-* implementation skeletons
-* enterprise-grade code only
+* backward compatibility strategy
+* enterprise-grade implementation skeletons
+* production-quality code only
 
 IMPORTANT:
-Do NOT generate demo code.
-Do NOT generate simplistic examples.
-Generate production-quality scalable implementation only.
+DO NOT generate demo code.
+DO NOT generate simplistic examples.
+DO NOT generate memory-heavy implementations.
+Generate ONLY scalable enterprise-grade production-quality implementation.
