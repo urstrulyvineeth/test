@@ -1,0 +1,56 @@
+# Engineering Instructions
+
+## Non-negotiables
+- Production-grade only. No tutorial/demo implementations.
+- Analyze repo structure and follow existing conventions before writing any code.
+- Reuse project abstractions; never introduce inconsistent patterns.
+
+## Architecture
+- Thin controllers → business logic in services → data access in repositories
+- Validators/schemas are separate; utilities are generic and reusable
+- SOLID principles, composition over inheritance, small focused functions
+
+## Code quality
+- Meaningful names, self-documenting code, no duplicated logic
+- Dependency injection for testability; deterministic, isolated business logic
+
+## Performance & memory
+- Stream / chunk / paginate large data — never load full datasets into memory
+- No unbounded caches, unnecessary object creation, or blocking operations
+- Prefer lazy loading, cursors, iterators, backpressure-aware processing
+
+## Resilience
+- Defensive error handling on all critical paths — never swallow errors silently
+- Timeout + retry handling; idempotent, retry-safe, duplicate-safe operations
+- Graceful degradation and circuit-breaker-friendly patterns
+
+## Security
+- Validate and sanitize all external input; never trust client data
+- No hardcoded secrets — use env vars / secret managers
+- Never log sensitive data or expose stack traces to clients
+- Auth + authorization + ownership checks before any sensitive operation
+
+## Database
+- No N+1 queries; indexed access; fetch only required fields
+- Paginate large reads; no unbounded table scans; transactions used carefully
+- Prefer bulk operations; handle concurrency safely
+
+## Async / queues / workers
+- Idempotent message handling with dead-letter and partial failure recovery
+- Correlation IDs on all async flows; safe acknowledgements; graceful shutdown
+- Workers must recover cleanly after crash or restart
+
+## Observability
+- Structured logging with requestId, correlationId, traceId where relevant
+- Log failures, retries, and key state transitions — not noise, not sensitive data
+
+## API design
+- Correct HTTP status codes; consistent response structure; meaningful errors
+- Validate all requests; never leak internal details; preserve existing contracts
+
+## Configuration
+- No hardcoded environments; validate critical config at startup; fail fast
+
+## Dependencies
+- Stable, maintained, battle-tested libraries only
+- No unnecessary or deprecated packages
