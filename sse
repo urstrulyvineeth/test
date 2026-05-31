@@ -1,0 +1,111 @@
+You are a Principal Spring Boot + Frontend Architect.
+
+Analyze the complete codebase and fix all Server-Sent Events (SSE) connection lifecycle issues.
+
+Current Architecture:
+
+* Backend: Spring Boot
+* Frontend: Freemarker (FTL) + JavaScript
+* Download request is submitted to another microservice.
+* Download status/result is sent back through SSE.
+* User can navigate between screens, refresh pages, open multiple tabs, or leave the application while processing is running.
+
+Problem:
+The SSE connection gets disconnected during:
+
+* Browser refresh
+* Page navigation
+* FTL page reload
+* Browser back/forward navigation
+* Long processing times
+* Session timeout scenarios
+* Network interruptions
+
+Expected Behaviour:
+
+1. Once a download job is initiated, tracking MUST continue until the backend sends a final response:
+
+   * SUCCESS
+   * FAILURE
+   * CANCELLED
+   * TIMEOUT
+
+2. Refreshing the page must NOT lose the job.
+
+3. Navigating to another screen must NOT lose the job.
+
+4. Closing and reopening the browser must reconnect automatically and continue tracking active jobs.
+
+5. Network interruptions must automatically reconnect.
+
+6. Multiple simultaneous downloads must be supported.
+
+7. No duplicate SSE subscriptions.
+
+8. No memory leaks.
+
+9. No orphaned emitters on backend.
+
+10. No lost events.
+
+11. Delivery must be guaranteed even if frontend reconnects.
+
+12. User must eventually receive the final status regardless of refresh/navigation.
+
+Implementation Requirements:
+
+Backend:
+
+* Review all SSE endpoints.
+* Review emitter lifecycle management.
+* Review timeout handling.
+* Review cleanup logic.
+* Review concurrent map usage.
+* Review thread safety.
+* Review reconnect support.
+* Review Last-Event-ID support.
+* Review missed-event recovery.
+* Review heartbeat implementation.
+* Review cluster-safe design if multiple instances exist.
+* Review transaction boundaries.
+
+Frontend:
+
+* Review EventSource lifecycle.
+* Prevent page-level ownership of SSE connections.
+* Implement application-level SSE manager.
+* Persist active job IDs in localStorage/sessionStorage.
+* Restore subscriptions after refresh.
+* Restore subscriptions after browser reopen.
+* Implement exponential backoff reconnect strategy.
+* Prevent duplicate listeners.
+* Handle multiple tabs safely.
+* Handle stale connections.
+* Handle browser visibility changes.
+* Handle offline/online events.
+
+Architecture Requirements:
+
+* SSE connection must survive any user navigation.
+* Job state must be recoverable from backend.
+* Final result must always be obtainable even if SSE event was missed.
+* Add polling fallback if SSE cannot reconnect.
+* Implement production-grade resilience patterns.
+
+Deliverables:
+
+1. Root cause analysis.
+2. Architecture diagram explanation.
+3. Exact code changes.
+4. Backend changes.
+5. Frontend changes.
+6. Database changes if required.
+7. Sequence flow.
+8. Failure scenario handling.
+9. Production-ready implementation.
+
+Do not provide theoretical suggestions.
+Provide complete production-ready code modifications with explanations.
+Refactor existing code where necessary.
+Follow Spring Boot best practices.
+Ensure scalability, thread safety, fault tolerance, and zero event loss.
