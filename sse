@@ -1,111 +1,79 @@
-You are a Principal Spring Boot + Frontend Architect.
+You are a Senior Frontend Architect.
 
-Analyze the complete codebase and fix all Server-Sent Events (SSE) connection lifecycle issues.
+Analyze the existing Freemarker (FTL) + JavaScript implementation and fix all SSE lifecycle issues WITHOUT changing any backend code.
 
-Current Architecture:
+Important Constraints:
 
-* Backend: Spring Boot
-* Frontend: Freemarker (FTL) + JavaScript
-* Download request is submitted to another microservice.
-* Download status/result is sent back through SSE.
-* User can navigate between screens, refresh pages, open multiple tabs, or leave the application while processing is running.
+* Backend SSE API already exists.
+* Backend code cannot be modified.
+* Solution must be implemented entirely in frontend.
+* Existing SSE endpoint contract must remain unchanged.
 
-Problem:
-The SSE connection gets disconnected during:
+Current Problem:
+SSE connection is lost when:
 
-* Browser refresh
-* Page navigation
-* FTL page reload
-* Browser back/forward navigation
-* Long processing times
-* Session timeout scenarios
-* Network interruptions
+* User refreshes the page
+* User navigates to another screen
+* User uses browser back/forward
+* User opens multiple tabs
+* User temporarily loses network
+* FTL pages reload
 
 Expected Behaviour:
 
-1. Once a download job is initiated, tracking MUST continue until the backend sends a final response:
-
-   * SUCCESS
-   * FAILURE
-   * CANCELLED
-   * TIMEOUT
-
-2. Refreshing the page must NOT lose the job.
-
-3. Navigating to another screen must NOT lose the job.
-
-4. Closing and reopening the browser must reconnect automatically and continue tracking active jobs.
-
-5. Network interruptions must automatically reconnect.
-
-6. Multiple simultaneous downloads must be supported.
-
-7. No duplicate SSE subscriptions.
-
-8. No memory leaks.
-
-9. No orphaned emitters on backend.
-
-10. No lost events.
-
-11. Delivery must be guaranteed even if frontend reconnects.
-
-12. User must eventually receive the final status regardless of refresh/navigation.
+1. Download tracking must continue seamlessly.
+2. User should never feel the download was lost.
+3. Active download jobs must survive refresh.
+4. Active download jobs must survive page navigation.
+5. Active download jobs must restore automatically after browser reopen.
+6. Multiple concurrent downloads must be supported.
+7. Duplicate EventSource connections must be prevented.
+8. Duplicate event listeners must be prevented.
+9. Memory leaks must be eliminated.
+10. Automatic reconnection must happen on failures.
+11. UI state must recover automatically.
 
 Implementation Requirements:
 
-Backend:
+Review:
 
-* Review all SSE endpoints.
-* Review emitter lifecycle management.
-* Review timeout handling.
-* Review cleanup logic.
-* Review concurrent map usage.
-* Review thread safety.
-* Review reconnect support.
-* Review Last-Event-ID support.
-* Review missed-event recovery.
-* Review heartbeat implementation.
-* Review cluster-safe design if multiple instances exist.
-* Review transaction boundaries.
+* All EventSource creation points.
+* All page lifecycle hooks.
+* All navigation handling.
+* All localStorage/sessionStorage usage.
+* All download tracking logic.
 
-Frontend:
+Implement:
 
-* Review EventSource lifecycle.
-* Prevent page-level ownership of SSE connections.
-* Implement application-level SSE manager.
-* Persist active job IDs in localStorage/sessionStorage.
-* Restore subscriptions after refresh.
-* Restore subscriptions after browser reopen.
-* Implement exponential backoff reconnect strategy.
-* Prevent duplicate listeners.
-* Handle multiple tabs safely.
-* Handle stale connections.
-* Handle browser visibility changes.
-* Handle offline/online events.
+1. Centralized SSE Manager singleton.
+2. Connection reuse strategy.
+3. Active Job Registry.
+4. localStorage persistence.
+5. Browser reopen recovery.
+6. Reconnection strategy with exponential backoff.
+7. Network offline/online recovery.
+8. Visibility change handling.
+9. Multi-tab coordination.
+10. Cleanup of stale subscriptions.
 
-Architecture Requirements:
+Architecture:
 
-* SSE connection must survive any user navigation.
-* Job state must be recoverable from backend.
-* Final result must always be obtainable even if SSE event was missed.
-* Add polling fallback if SSE cannot reconnect.
-* Implement production-grade resilience patterns.
+* Store active download job IDs in localStorage.
+* On page load automatically restore active jobs.
+* Re-subscribe to required SSE streams.
+* If SSE reconnect fails repeatedly, use status API fallback if available.
+* Maintain download state independently from page lifecycle.
 
 Deliverables:
 
 1. Root cause analysis.
-2. Architecture diagram explanation.
-3. Exact code changes.
-4. Backend changes.
-5. Frontend changes.
-6. Database changes if required.
-7. Sequence flow.
-8. Failure scenario handling.
-9. Production-ready implementation.
+2. Exact issues found.
+3. Complete code modifications.
+4. Refactored JavaScript implementation.
+5. Event flow explanation.
+6. Multi-tab handling strategy.
+7. Refresh recovery strategy.
+8. Browser reopen recovery strategy.
 
 Do not provide theoretical suggestions.
-Provide complete production-ready code modifications with explanations.
-Refactor existing code where necessary.
-Follow Spring Boot best practices.
-Ensure scalability, thread safety, fault tolerance, and zero event loss.
+Provide complete production-ready code compatible with Freemarker (FTL) pages.
